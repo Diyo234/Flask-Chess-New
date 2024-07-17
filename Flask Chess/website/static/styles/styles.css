@@ -1,0 +1,189 @@
+body{
+    background-color: #262626;
+    font-family: 'Trebuchet MS';
+    font-weight: 700;
+}
+:root {
+    --big-square-size:80vh;
+    --square-size: calc((var(--big-square-size) * 0.9375) / 8);
+  }
+.white-cell {
+    background-color: #efdede; /* Light color */
+}
+
+/* Styling for black cells */
+.black-cell {
+    background-color: #9c9191;
+    color: #0a0c11;
+}
+.background-square {
+    margin-left: auto;
+    margin-right: auto;
+    display: flex;
+    position: relative;
+    background-color: rgb(100, 67, 25);
+    width:var(--big-square-size);
+    height:var(--big-square-size);
+    justify-content: center;
+    align-items: center;
+    border-radius: 4px;
+}
+.big-square{
+    display: flex;
+    position: relative;
+    justify-content: center;
+    align-items: center;
+}
+.game-square{
+    display: grid;
+    position: relative;
+    background-color: black;
+    color: white;
+    font-size: calc(var(--square-size)/4);
+    width:calc(var(--square-size)*4);
+    height:calc(var(--square-size)*8);
+    justify-content: center;
+    align-items: center;
+    margin-left:calc(var(--square-size)/3);
+    margin-right: calc(var(--square-size)/3);
+}
+.letter {
+    font-size: calc(var(--square-size)/5);
+    color: #fff; /* Optional: Set the text color */
+  }
+.name {
+    font-size: calc(var(--square-size)/3);
+    color: #090909; 
+    white-space: pre;
+  }
+/* Styling for the chessboard squares */
+.chess-square {
+    display: flex;
+    width: var(--square-size);
+    height: var(--square-size);
+    text-align: center;
+    align-items: center;
+    position: relative;
+}
+.letter-square {
+    display: flex;
+    position:absolute;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+}
+.letter-row{
+    width: var(--square-size);
+    height: calc(var(--square-size)/5)
+}
+.letter-column{
+    width: calc(var(--square-size)/4);
+    height: var(--square-size); 
+}
+.clock-square{
+    width: calc((var(--square-size)*5)/3);
+    height: var(--square-size);
+    margin-left:calc(var(--square-size)/3);
+    margin-right: calc(var(--square-size)/3);
+    color: #0f0e0efc;
+    font-size: calc(var(--square-size)/2.3);
+    text-align: center;
+    text-justify: center;
+    border-radius: 4px;
+}
+.empty-square{
+    width: 100px;
+    height: calc(var(--square-size)/2);
+    margin-left:calc(var(--square-size)/3);
+    margin-right: calc(var(--square-size)/3);
+}
+.icon-square{
+    margin-left:calc(var(--square-size)/4.5);
+    align-self:flex-start;
+    justify-self: flex-start;
+    width: calc(var(--square-size)/2.3);
+    height: calc(var(--square-size)/2);
+    border-radius: 4px;
+}
+.mobile-icon{
+    /* margin-left: calc(var(--square-size)*1.5);
+    margin-right: calc(var(--square-size)*1.5); */
+    width: calc(((100vw - var(--square-size) * 4.5))/2);
+    height: 5vh;
+    font-size: 2vh;
+    text-align: center;
+    align-items: center;
+    justify-content: center;
+    text-justify: center;
+    /* background-color: white !important; */
+    margin-left: auto;
+    margin-right: auto;
+    font-size: 3vh;
+}
+.pieces-square {
+    display: flex;
+    margin-left: auto;
+    margin-right: auto;
+    width: calc(var(--square-size) * 4.5);
+    height: 5vh;
+}
+.dot {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(var(--square-size)/3);
+    height: calc(var(--square-size)/3);
+    background-color: #bbb;
+    border-radius: 50%;
+    margin:auto;
+    z-index: 2;
+    /* display: inline-block; */
+}
+.dot::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: calc(var(--square-size)/1.5);
+    height: calc(var(--square-size)/1.5);
+    background-color: transparent;
+    border-radius: 50%;
+    z-index: -1;
+}
+.piece{
+    position:relative;
+    margin:auto;
+    max-height: 100%;
+    /* width:var(--square-size)-7vh; */
+    z-index:1;
+}
+.container{
+    display:grid;
+    position: relative;
+    height: var(--square-size);
+    height: 100%;
+    font-size: calc(var(--square-size)/6.4);
+    color:rgb(0, 0, 0);
+    padding:0;
+}
+.chessboard {
+    /* position: relative; */
+    display: grid;
+    margin:auto;
+    justify-content: center;
+    align-items: center;
+    box-sizing: border-box;
+    /* padding: calc(var(--square-size)/6); */
+}
+.button {
+    display: flex;
+    position: absolute;
+    justify-content: center;
+    align-items: center;
+    z-index: 3;
+    width: var(--square-size);
+    height: var(--square-size);
+}

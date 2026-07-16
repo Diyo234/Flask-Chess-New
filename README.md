@@ -16,14 +16,13 @@ Flask Chess is a browser-based chess app built with Flask, Socket.IO, and python
 - Gives you a working multiplayer chess experience without a separate frontend framework.
 - Uses a real chess engine for computer play instead of hardcoded moves.
 - Keeps the game logic and UI in a small, easy-to-run Flask project.
-- Includes a legacy desktop prototype in the [Chess Bot/](Chess%20Bot/) folder if you want to compare approaches.
 
 ## Getting started
 
 ### Requirements
 
 - Python 3.10 or newer
-- A Windows-compatible Stockfish executable at [Chess Bot/stockfish-windows-x86-64-avx2 (1)/stockfish/stockfish-windows-x86-64-avx2.exe](Chess%20Bot/stockfish-windows-x86-64-avx2%20%281%29/stockfish/stockfish-windows-x86-64-avx2.exe)
+- A Windows-compatible Stockfish executable at [Chess Bot/stockfish-windows-x86-64-avx2 (1)/stockfish/stockfish-windows-x86-64-avx2.exe](chess-bot/stockfish-windows-x86-64-avx2/stockfish/stockfish-windows-x86-64-avx2.exe)
 
 ### Install dependencies
 
@@ -79,7 +78,7 @@ Then open `http://127.0.0.1:8000/` in your browser.
 
 - Read the route and game logic in [website/views.py](website/views.py).
 - Review the frontend behavior in [website/static/](website/static/) and the board template in [website/templates/home.html](website/templates/home.html).
-- Refer to the bundled Stockfish documentation in [Chess Bot/stockfish-windows-x86-64-avx2 (1)/stockfish/README.md](Chess%20Bot/stockfish-windows-x86-64-avx2%20%281%29/stockfish/README.md) if you need engine-specific details.
+- Refer to the bundled Stockfish documentation in [chess-bot/stockfish-windows-x86-64-avx2/stockfish/README.md](chess-bot/stockfish-windows-x86-64-avx2/stockfish/README.md) if you need engine-specific details.
 
 ## License
 

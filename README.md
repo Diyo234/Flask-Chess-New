@@ -27,17 +27,25 @@ Flask Chess is a browser-based chess app built with Flask, Socket.IO, and python
 
 ### Install dependencies
 
-This repository does not include a `requirements.txt`, so install the runtime packages directly:
+From a fresh clone, create and activate a virtual environment, then install the pinned dependencies from `requirements.txt`:
 
-```bash
-pip install Flask Flask-SocketIO Flask-SQLAlchemy Flask-Login python-chess stockfish
+In PowerShell:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 ```
 
-If you want to work with the legacy desktop prototype in `Chess Bot/`, also install:
+If you prefer `cmd.exe`, use:
 
-```bash
-pip install pygame
+```bat
+python -m venv .venv
+.venv\Scripts\activate.bat
+pip install -r requirements.txt
 ```
+
+If script execution is restricted in PowerShell, allow local scripts for the current user or use `cmd.exe` instead.
 
 ### Run the web app
 
@@ -51,7 +59,7 @@ Then open `http://127.0.0.1:8000/` in your browser.
 
 ### What to expect on first run
 
-- A SQLite database named `database.db` is created automatically.
+- A SQLite database named `database.db` is created automatically the first time the app starts.
 - The board opens at the home route and lets you choose online or offline play.
 - Offline computer play uses the bundled Stockfish binary through [website/stockfish_bot.py](website/stockfish_bot.py).
 
@@ -63,7 +71,7 @@ Then open `http://127.0.0.1:8000/` in your browser.
 
 ### Notes for contributors
 
-- Keep the Stockfish path in sync with [website/stockfish_bot.py](website/stockfish_bot.py) if you move the engine binary.
+- Keep the Stockfish path in sync with [website/stockfish_bot.py](website/stockfish_bot.py) if you move the engine binary, or update it to a configurable setting before relocating the engine.
 - The Flask secret key and database name are defined in [website/__init__.py](website/__init__.py).
 - The board UI and game flow are split across [website/views.py](website/views.py), [website/static/](website/static/), and [website/templates/](website/templates/).
 
@@ -73,9 +81,13 @@ Then open `http://127.0.0.1:8000/` in your browser.
 - Review the frontend behavior in [website/static/](website/static/) and the board template in [website/templates/home.html](website/templates/home.html).
 - Refer to the bundled Stockfish documentation in [Chess Bot/stockfish-windows-x86-64-avx2 (1)/stockfish/README.md](Chess%20Bot/stockfish-windows-x86-64-avx2%20%281%29/stockfish/README.md) if you need engine-specific details.
 
+## License
+
+This project is released under the MIT License. See [LICENSE](LICENSE) for the full text.
+
 ## Maintenance and contributions
 
-This repository does not currently include a dedicated maintainer file, license file, or contribution guide. It appears to be maintained by the repository owner.
+This repository does not currently include a dedicated maintainer or contribution guide. It appears to be maintained by the repository owner.
 
 Contributions are welcome through pull requests. Please keep changes focused, describe the behavior you changed, and include reproduction steps for gameplay or networking bugs.
 

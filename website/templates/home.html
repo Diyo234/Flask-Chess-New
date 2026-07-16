@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Chessboard{% endblock %}
+{% block content %}
+{% set letters = "A", "B", "C", "D", "E", "F", "G", "H" %}
+<script>
+  var urlForBase = "{{ url_for('static', filename='base.js') }}"
+  var urlForOnline = "{{ url_for('static', filename='online.js') }}"
+  var urlForOffline = "{{ url_for('static', filename='offline.js') }}"
+  if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
+        const root = document.documentElement;
+        root.style.setProperty('--big-square-size', '100vw');
+    }
+
+  function loadScript(scriptPath) {
+      var script = document.createElement('script');
+      script.type = 'text/javascript';
+      script.src = scriptPath;
+      document.body.appendChild(script);
+  }
+</script>
+<div class = "column" id = "mobile-screen" style="display: flex; flex-direction: column; margin:auto; justify-content: center; align-items: center;">
+<div class = "row change" style="display: flex; border-top: 4px solid black; border-bottom: 4px solid black;">
+  <div class = "mobile-icon black-cell" name = "mobile" style="display:none; margin-left: auto;">
+    <div class = "name" style="font-size: 1.5vh;"> Player2</div>
+    <div class = "name" style="font-size: 1.5vh;"> 900</div></div>
+  
+
+    <div class = "pieces-square black-cell" id="white-taken" style="display: none; border: 4px solid black; border-top: none; border-bottom: none;">
+      <div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div>
+    </div>
+<div class = "mobile-icon black-cell" name = "mobile" id = "black-time" style="display: none; margin-right: auto; margin-left: auto;" clock-value = 600>10:00</div>
+</div>
+<div class = "big-square">
+  <div class = "flex-container column" id = players-container style = display:none;>
+    <div class = "flex-container row">
+      <div class = "clock-square black-cell">
+        <div class = row>
+          <div class = "icon-square white-cell"></div>
+          <div class = "name"> 900</div>
+        </div>
+        <div class = "name"> Player1</div>
+      </div>
+    </div>
+    <div class = "flex-container row">
+      <div class = "empty-square"></div>
+    </div>
+    <div class = "flex-container row">
+      <div class = "clock-square white-cell">
+        <div class = row>
+          <div class = "icon-square black-cell"></div>
+          <div class = "name"> 900</div>
+        </div>
+        <div class = "name"> Player2</div>
+      </div>
+    </div>
+  </div>
+  <div class = "column">
+    <div class ="background-square">
+      <div class = "column" id = "column1">
+        {% for x in range (1,9) %}
+        <div class = "letter-square letter-column">
+          <div class = "letter"> {{9-x}} </div>
+      </div>
+        {% endfor %}
+      </div>
+      <div id="chessboard" class="chessboard">
+        <div class = "row" id ="row1">
+        {% for x in letters %}
+        <div class = "letter-square letter-row">
+          <div class = "letter"> {{x}} </div>
+        </div>
+        {% endfor %}
+        </div>
+              {% for n in range(8) %}
+                  <div class="row">
+                      {% for x in range(8) %}
+                          {% set cellClass = 'white-cell' if (n + x) % 2 == 0 else 'black-cell' %}
+                          <div class="chess-square {{ cellClass }}" data-coordinates="{{ x }},{{ n }}">
+                          {% if (n == 6 ) %}
+                            <img class= "piece"  src="{{ url_for('static', filename='images/pawn_white.png') }}" alt="pawn_white" data-piece="pawn_white" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.PAWN" data-colour = "chess.WHITE" data-value = "1"/>
+                          {% elif (n == 1 ) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/pawn_black.png') }}"alt="pawn_black" data-piece="pawn_black" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.PAWN" data-colour = "chess.BLACK" data-value = "-1"/>
+                          {% elif (n == 7 and x == 0 or n == 7 and x == 7) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/rook_white.png') }}"alt="rook_white" data-piece="rook_white" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.ROOK" data-colour = "chess.WHITE" data-value = "5"/>
+                          {% elif (n == 0 and x == 0 or n == 0 and x == 7) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/rook_black.png') }}" alt="rook_black" data-piece="rook_black" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.ROOK" data-colour = "chess.BLACK" data-value = "-5"/>
+                          {% elif (n == 7 and x == 1 or n == 7 and x == 6) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/knight_white.png') }}" alt="knight_white" data-piece="knight_white" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.KNIGHT" data-colour = "chess.WHITE" data-value = "3"/>
+                          {% elif (n == 0 and x == 1 or n == 0 and x == 6) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/knight_black.png') }}" alt="knight_black" data-piece="knight_black" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.KNIGHT" data-colour = "chess.BLACK" data-value = "-3"/>
+                          {% elif (n == 7 and x == 2 or n == 7 and x == 5) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/bishop_white.png') }}" alt="bishop_white" data-piece="bishop_white" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.BISHOP" data-colour = "chess.WHITE" data-value = "3"/>
+                          {% elif (n == 0 and x == 2 or n == 0 and x == 5) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/bishop_black.png') }}" alt="bishop_black" data-piece="bishop_black" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.BISHOP" data-colour = "chess.BLACK" data-value = "-3"/>
+                          {% elif (n == 7 and x == 3) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/queen_white.png') }}" alt="queen_white" data-piece="queen_white" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.QUEEN" data-colour = "chess.WHITE" data-value = "9"/>
+                          {% elif (n == 0 and x == 3) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/queen_black.png') }}" alt="queen_black" data-piece="queen_black" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.QUEEN" data-colour = "chess.BLACK" data-value = "-9"/>
+                          {% elif (n == 7 and x == 4) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/king_white.png') }}" alt="king_white" data-piece="king_white" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.KING" data-colour = "chess.WHITE" data-value="0"/>
+                          {% elif (n == 0 and x == 4) %}
+                            <img class = "piece" src="{{ url_for('static', filename='images/king_black.png') }}" alt="king_black" data-piece="king_black" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.KING" data-colour = "chess.BLACK" data-value="0"/>
+                          {% endif %}
+                        </div>
+                      {% endfor %}
+                  </div>
+              {% endfor %}
+            
+              <div class = "row" id ="row2">
+                {% for x in letters %}
+                <div class = "letter-square letter-row">
+                  <div class = "letter"> {{x}} </div>
+                </div>
+                {% endfor %}
+          
+      </div>
+      </div>
+      
+      <div class = "column" id ="column2">
+        {% for x in range (1,9) %}
+        <div class = "letter-square letter-column">
+          <div class = "letter"> {{9-x}} </div>
+      </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+  
+  <div class = "flex-container column">
+    <div class = "game-square">
+      <div class = row>
+        <button type="button" onclick = online() class="btn btn-primary btn-lg" category ="first">Play Online</button>
+        <button type="button" onclick = matchmaking() class="btn btn-primary btn-lg" category = "online-mode" style = "display:none;">Search For Match</button>
+        <button type="button" onclick = 'startGame("player")' class="btn btn-primary btn-lg" category = "offline-mode" style = "display:none;">Player vs Player</button>
+        <button type="button" onclick = 'botLevel(0)' class="btn btn-primary btn-lg" category = "bot-button" style = "display:none;">Easy</button>
+        <button type="button" onclick = 'startGame("computer", "white")' class="btn btn-primary btn-lg" category = "white" style = "display:none;">Play as White</button>
+      </div>
+      <div class = row>
+        <button type="button" onclick = offline() class="btn btn-primary btn-lg" category = "first">Play Offline</button>
+        <button type="button" class="btn btn-primary btn-lg" category = "online-mode" style = "display:none;">Play With Friend</button>
+        <button type="button" onclick = selectLevel() class="btn btn-primary btn-lg" category = "offline-mode" style = "display:none;">Player vs Computer</button>
+        <button type="button" onclick = 'botLevel(7)' class="btn btn-primary btn-lg" category = "bot-button" style = "display:none;">Medium</button>
+        <button type="button" onclick = 'startGame("computer", "black")' class="btn btn-primary btn-lg" category = "black" style = "display:none;">Play as Black</button>
+      </div>
+      <div class = row>
+        <button type="button" onclick = back() class="btn btn-primary btn-lg" category = "back-button" style = "display:none;">Return</button>
+        <button type="button" onclick = 'botLevel(14)' class="btn btn-primary btn-lg" category = "bot-button" style = "display:none;">Hard</button>
+        <button type="button" onclick = 'startGame("computer")' class="btn btn-primary btn-lg" category = "random" style = "display:none;">Random</button>
+      </div>
+    </div>
+  </div>
+    <div class = column id = clock-column>
+      <div class = "row">
+        <div class = "clock-square black-cell" id = "black-time" name = "desktop" style="display: none;" clock-value = 600>10:00</div>
+      </div>
+      <div class = "row">
+        <div class = "empty-square"></div>
+      </div>
+      <div class = "row">
+        <div class = "clock-square white-cell" id = "white-time" name = "desktop" style="display: none;" clock-value = 600>10:00</div>
+      </div>
+    </div>
+</div>
+<div class = "row change" style="display: flex; border-bottom: 4px solid black; border-top: 4px solid black;">
+  <div class = "mobile-icon white-cell" name = "mobile" style="display:none; margin-right: auto; margin-left: auto; margin-top: 0;">
+    <div class = "name" style="font-size: 1.5vh;"> Player1</div>
+    <div class = "name" style="font-size: 1.5vh;"> 900</div></div>
+  
+<div class = "pieces-square white-cell" id="black-taken" style="display: none; margin-top: 0; border-right: 4px solid black; border-left: 4px solid black;">
+  <div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div>
+</div>
+
+<div class = "mobile-icon white-cell" name = "mobile" id = "white-time" style="display: none; margin-left: auto; margin-right: auto; margin-top: 0;" clock-value = 600>10:00</div>
+</div>
+</div>
+{% endblock %}

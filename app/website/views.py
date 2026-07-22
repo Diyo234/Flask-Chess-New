@@ -102,48 +102,8 @@ def move_generator(coords):
 
 @views.route('/move_piece', methods=['POST'])
 def move(move = None):
-    chessboard.set_fen(session['chessboard'])
-    state = []
-    if move == None:
-        data = json.loads(request.data)
-        old_coords = data.get('oldCoordinates')
-        new_coords = data.get('newCoordinates')
-        promote = data.get('promote')
-        string_one = letters[int(old_coords[0])]
-        string_two = str(8 - int(old_coords[-1]))
-        string_three = letters[new_coords[0]]
-        string_four = str(8 - new_coords[-1])
-        move = string_one+string_two+string_three+string_four
-        if promote != False:
-            if promote == 'knight_black' or promote == 'knight_white':
-                move += 'n'
-            else:
-                move += promote[0]
-            state.append(promote)
-    print(move)
-    if chessboard.is_en_passant(chess.Move.from_uci(move)):
-        if chessboard.turn == chess.BLACK:
-            state.append(-1)
-        else:
-            state.append(1)
-    elif chessboard.is_queenside_castling(chess.Move.from_uci(move)):
-        state.append(-4)
-    elif chessboard.is_kingside_castling(chess.Move.from_uci(move)):
-        state.append(2)
-    chessboard.push_uci(move)
-    if chessboard.is_check():
-        if chessboard.is_checkmate():
-            state.append('checkmate')
-        else:
-            state.append('check')
-    elif chessboard.is_stalemate():
-        state.append('stalemate')
-    elif chessboard.is_repetition():
-        state.append('repetition')
-    print(chessboard)
-    print(state)
-    session['chessboard'] = chessboard.fen()
-    return jsonify(state)
+   pass
+
 @socketio.on('move')
 def move_piece(data):
     xValue, yValue, coords = data['xValue'], data['yValue'], data['coords']

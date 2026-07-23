@@ -81,33 +81,18 @@ def handle_click():
     
 @views.route('/move_generator', methods=['POST'])
 def calculated_move():
-    data = request.json
-    coords = data.get("coords")
-    result = move_generator(coords)
-
-    return jsonify(result)
+    pass
 
 
 def move_generator(coords):
-    chessboard.set_fen(session['chessboard'])
-    altered_moves = []
-    square = chess.parse_square(letters[int(coords[0])]+str(8-int(coords[2])))
-    legal_moves = chessboard.legal_moves
-    piece_moves = [move.uci() for move in legal_moves if move.from_square == square]
-    for move in piece_moves:
-        x = str(letters.index(move[2]))
-        y = str(8-int(move[3]))
-        altered_moves.append(x+","+y)
-    return(altered_moves)
+    pass
 
 @views.route('/move_piece', methods=['POST'])
 def move(move = None):
-   pass
-
+    pass
 @socketio.on('move')
 def move_piece(data):
-    xValue, yValue, coords = data['xValue'], data['yValue'], data['coords']
-    socketio.emit('moved', {'xValue': xValue, 'yValue': yValue, 'coords':coords})
+    pass
 
 @views.route('/bot_move', methods=['POST'])
 def bot_move():

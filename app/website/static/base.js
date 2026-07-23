@@ -437,7 +437,7 @@ document.addEventListener('click', function(event) {
       moveData = {
         xValue:xValue, yValue:yValue, coords:coords}
         movePiece(moveData)
-        fetch('/move_piece', {
+        fetch('/moves/move_piece', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -488,7 +488,7 @@ document.addEventListener('click', function(event) {
             coords: Element.getAttribute('data-coordinates')
           };
           coords = jsonData.coords
-          fetch('/move_generator', {
+          fetch('/moves/move_generator', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

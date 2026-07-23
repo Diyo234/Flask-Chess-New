@@ -79,20 +79,6 @@ def handle_click():
     response = {'message': f'Piece "{piece}" clicked'}
     return jsonify(response)
     
-@views.route('/move_generator', methods=['POST'])
-def calculated_move():
-    pass
-
-
-def move_generator(coords):
-    pass
-
-@views.route('/move_piece', methods=['POST'])
-def move(move = None):
-    pass
-@socketio.on('move')
-def move_piece(data):
-    pass
 
 @views.route('/bot_move', methods=['POST'])
 def bot_move():

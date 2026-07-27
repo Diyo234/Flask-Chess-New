@@ -166,6 +166,20 @@ function repetitionAction(data){
   blackKing.parentNode.style.backgroundColor = "yellow"
   turn += 0.2
 }
+function fiftyMovesAction(data){
+    whiteKing = document.querySelector(`.piece[alt="king_white"]`)
+  blackKing = document.querySelector(`.piece[alt="king_black"]`)
+  whiteKing.parentNode.style.backgroundColor = "yellow"
+  blackKing.parentNode.style.backgroundColor = "yellow"
+  turn += 0.2
+}
+function insufficientMaterialAction(data){
+    whiteKing = document.querySelector(`.piece[alt="king_white"]`)
+  blackKing = document.querySelector(`.piece[alt="king_black"]`)
+  whiteKing.parentNode.style.backgroundColor = "yellow"
+  blackKing.parentNode.style.backgroundColor = "yellow"
+  turn += 0.2
+}
 //////
 function kingAction(data){
   king = document.querySelector(`.piece[alt="${data[0]}"]`)
@@ -437,7 +451,7 @@ document.addEventListener('click', function(event) {
       moveData = {
         xValue:xValue, yValue:yValue, coords:coords}
         movePiece(moveData)
-        fetch('/moves/move_piece', {
+        fetch('/move_piece', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -478,6 +492,12 @@ document.addEventListener('click', function(event) {
           } else if (data[data.length-1] =='repetition') {
             repetition(king)
           }
+          else if (data[data.length-1] =='fifty_moves') {
+            fiftyMoves(king)
+          }
+          else if (data[data.length-1] =='insufficient_material') {
+            insufficientMaterial(king)
+          }
           if (player == "computer"){
             botMove()
           }
@@ -488,7 +508,7 @@ document.addEventListener('click', function(event) {
             coords: Element.getAttribute('data-coordinates')
           };
           coords = jsonData.coords
-          fetch('/moves/move_generator', {
+          fetch('/move_generator', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

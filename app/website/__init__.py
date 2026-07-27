@@ -20,9 +20,6 @@ def create_app():
 
     app.register_blueprint(views, url_prefix='/')
 
-    from .moves import moves
-    app.register_blueprint(moves, url_prefix='/moves')
-    
     socketio.init_app(app)
 
     with app.app_context():

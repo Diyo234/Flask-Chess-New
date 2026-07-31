@@ -81,13 +81,17 @@ def handle_click():
 
 @views.route('/move_generator', methods=['POST'])
 def calculated_move():
+    chessboard.set_fen(session['chessboard'])
     data = request.json
     coords = data.get("coords")
     coords = letters[int(coords[0])]+str(8-int(coords[2]))
-    move_completed = data.get("move_completed")
-    if move_completed == False:
+    square = chess.parse_square(coords)
+    piece = chessboard.piece_at(square)
+    if piece is None:
+        return jsonify([])
+    if (chessboard.turn == chess.WHITE and piece.color == chess.WHITE) or (chessboard.turn == chess.BLACK and piece.color == chess.BLACK):
         result = move_generator(coords)
-    else:
+    elif (chessboard.turn == chess.BLACK and piece.color == chess.WHITE) or (chessboard.turn == chess.WHITE and piece.color == chess.BLACK):
         result = premove_generator(coords)
 
     return jsonify(result)
@@ -176,22 +180,25 @@ def move(move = None):
         chessboard.push_uci(previous_move)
     state = []
     if move == None:
+        print("no move")
         data = json.loads(request.data)
-        print(data)
-        old_coords = data.get('oldCoordinates')
-        new_coords = data.get('newCoordinates')
-        promote = data.get('promote')
-        string_one = letters[int(old_coords[0])]
-        string_two = str(8 - int(old_coords[-1]))
-        string_three = letters[new_coords[0]]
-        string_four = str(8 - new_coords[-1])
-        move = string_one+string_two+string_three+string_four
-        if promote != False:
-            if promote == 'knight_black' or promote == 'knight_white':
-                move += 'n'
-            else:
-                move += promote[0]
-            state.append(promote)
+        if type(data) == str:
+            move = session['premove']
+        else:
+            old_coords = data.get('oldCoordinates')
+            new_coords = data.get('newCoordinates')
+            promote = data.get('promote')
+            string_one = letters[int(old_coords[0])]
+            string_two = str(8 - int(old_coords[-1]))
+            string_three = letters[new_coords[0]]
+            string_four = str(8 - new_coords[-1])
+            move = string_one+string_two+string_three+string_four
+            if promote != False:
+                if promote == 'knight_black' or promote == 'knight_white':
+                    move += 'n'
+                else:
+                    move += promote[0]
+                state.append(promote)
     if chessboard.is_en_passant(chess.Move.from_uci(move)):
         if chessboard.turn == chess.BLACK:
             state.append(-1)
@@ -203,7 +210,6 @@ def move(move = None):
         state.append(2)
     
     move_object = chess.Move.from_uci(move)
-    print('this is where')
     if move_object not in chessboard.legal_moves:
         print("Illegal move")
         print (move_object)
@@ -234,6 +240,7 @@ def move(move = None):
 @views.route('/store_move', methods=['POST'])
 def store_move():
     data = json.loads(request.data)
+    print(data)
     move = data.get('move')
     old_coords = move.get('oldCoordinates')
     new_coords = move.get('newCoordinates')

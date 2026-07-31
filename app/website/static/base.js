@@ -11,7 +11,6 @@ var score = 0
 var turn = 0
 var currentPlayer = turn % 2
 var premoveWhite = true
-var moveCompleted = false
 var storedMove = 0
 var player = players[0]
 var removeButtons = 4
@@ -21,7 +20,6 @@ var pieceList = [
   ['queen_white', 'knight_white', 'rook_white', 'bishop_white'],
   ['queen_black', 'knight_black', 'rook_black', 'bishop_black']
 ]
-
 if (choice == 'online' || choice == 'opponent'){
   url = urlForOnline
 } else if (choice == 'player' || choice == 'computer'){
@@ -89,92 +87,39 @@ else {
   }
 }
 function moveAction(data){
-  move = data.move
-  xValue = data.xValue
-  yValue = data.yValue
-  fetch('/move_piece', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        
-        body: JSON.stringify(move)
-        })
-        .then(response =>{
-          if(!response.ok){
-            console.log("error")
-          }
-          return(response.json())
-        }) 
-        .then(result => {
-          if (result.error !== "Illegal move") {
-            if (result[0] == 1 || data[0] == -1){
-              yValue += result[0]
-              // updateVariable([xValue,yValue])
-              enPassant([xValue,yValue])
-            } else if (result[0] == 2 || result[0] == -4){
-              castling([result[0],xValue,yValue])
-            }
-
-            if (result[result.length-1] =='check' || result[result.length-1] == 'checkmate'){
-              if (turn %2 == 0){
-                var king = ["king_white", "king_black"]
-              } else {
-                var king = ["king_black", "king_white"]
-              }
-              if (result[result.length-1] =='check'){
-                updateVariable(king)
-                kingCheck(king)
-              } else {
-                checkmate(king)
-              }
-            } else if (result[result.length-1] =='stalemate') {
-              stalemate(king)
-            } else if (result[result.length-1] =='repetition') {
-              repetition(king)
-            } else if (result[result.length-1] =='fifty_moves') {
-              fiftyMoves(king)
-            } else if (result[result.length-1] =='insufficient_material') {
-              insufficientMaterial(king)
-            }
-
-            if (player == "computer"){
-              botMove()
-            }
-
-            moveCompleted = true
-            if (turn > 0 ){
-              previousLoc.style.border = "none"
-              newLoc.style.border = "none"
-            }
-            var redSquare = chessboard.querySelectorAll(`.chess-square[style*="border: ${borderSize} solid red;"]`);
-            if (redSquare[0]){
-              redSquare[0].style.border = "none"
-            }
-            updateUI(data);
-            if (pieceList[0].includes(result[0]) || pieceList[1].includes(result[0])){
-              promotion([result[0], xValue, yValue])
-            }
-            if (!premoveWhite){
-              nextTurn()
-            }
-
-            newLoc = document.querySelector(`.chess-square[data-coordinates="${data.xValue},${data.yValue}"]`)
-            previousLoc = document.querySelector(`.chess-square[data-coordinates="${data.coords}"]`)
-            if (kingBlackSquare == true){
-              kingBlackSquare = false
-              kings = document.querySelectorAll(`.piece[data-type="chess.KING"]`)
-              kings.forEach(element => {
-                if (element.parentNode.style.border == `${borderSize} solid black`){
-                  element.parentNode.style.border = "none"
-                }
-              });
-            }
-            newLoc.style.border = `${borderSize} solid black`
-            previousLoc.style.border = `${borderSize} solid black`
-          }
-        })
+  if (turn > 0 ){
+    previousLoc.style.border = "none"
+    newLoc.style.border = "none"
+  }
+  var redSquare = chessboard.querySelectorAll(`.chess-square[style*="border: ${borderSize} solid red;"]`);
+  if (redSquare[0]){
+    redSquare[0].style.border = "none"
+  }
+  updateUI(data);
+    // nextTurn()
+  // turn += 1
+  // currentPlayer = turn % 2
+  // pausedPlayer = 1 - turn % 2
+  // timer = timeList[currentPlayer]
+  // clearInterval(clockPause [pausedPlayer])
+  // clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
+  // player = players[currentPlayer]
+  newLoc = document.querySelector(`.chess-square[data-coordinates="${data.xValue},${data.yValue}"]`)
+  previousLoc = document.querySelector(`.chess-square[data-coordinates="${data.coords}"]`)
+  if (kingBlackSquare == true){
+    kingBlackSquare = false
+    kings = document.querySelectorAll(`.piece[data-type="chess.KING"]`)
+    kings.forEach(element => {
+      if (element.parentNode.style.border == `${borderSize} solid black`){
+        element.parentNode.style.border = "none"
+      }
+    });
+  }
+  newLoc.style.border = `${borderSize} solid black`
+  previousLoc.style.border = `${borderSize} solid black`
+  
 }
+
 function castlingAction(data){
     data[1] += data[0]/2
   const rook = document.querySelectorAll(`.piece[data-coordinates="${data[1]},${data[2]}"][data-type="chess.ROOK"]`);
@@ -188,9 +133,6 @@ function castlingAction(data){
 }
 function promotionAction(data){
   const parts = data[0].split('_')
-  console.log(data)
-  console.log(data[0])
-  console.log (data[1], data[2])
   const promotedPawn = document.querySelector(`.piece[data-coordinates="${data[1]},${data[2]}"]`);
   promotedPawn.src = `/static/images/${data[0]}.png`;
   promotedPawn.alt = data.enPassant;
@@ -222,20 +164,6 @@ function stalemateAction(data){
   turn += 0.2
 }
 function repetitionAction(data){
-    whiteKing = document.querySelector(`.piece[alt="king_white"]`)
-  blackKing = document.querySelector(`.piece[alt="king_black"]`)
-  whiteKing.parentNode.style.backgroundColor = "yellow"
-  blackKing.parentNode.style.backgroundColor = "yellow"
-  turn += 0.2
-}
-function fiftyMovesAction(data){
-    whiteKing = document.querySelector(`.piece[alt="king_white"]`)
-  blackKing = document.querySelector(`.piece[alt="king_black"]`)
-  whiteKing.parentNode.style.backgroundColor = "yellow"
-  blackKing.parentNode.style.backgroundColor = "yellow"
-  turn += 0.2
-}
-function insufficientMaterialAction(data){
     whiteKing = document.querySelector(`.piece[alt="king_white"]`)
   blackKing = document.querySelector(`.piece[alt="king_black"]`)
   whiteKing.parentNode.style.backgroundColor = "yellow"
@@ -333,8 +261,6 @@ function enPassantAction(data){
     }
   
 }
-function premove(data){
-}
 function updateScore(){
   oldScore = document.querySelector('#score')
   if (oldScore){
@@ -355,15 +281,6 @@ function updateScore(){
   }
 }
 function updateUI(data){
-  console.log(currentPlayer)
-  console.log(storedMove)
-  if (currentPlayer == 1 && storedMove != 0){ 
-            console.log('Moving stored move')
-            
-        console.log(storedMove)
-          movePiece(storedMove)
-        }
-  console.log(data)
   lastClicked = document.querySelector(`.piece[data-coordinates="${data.coords}"]`);
   if (lastClicked) {
     lastClicked.setAttribute('data-coordinates', `${data.xValue},${data.yValue}`)
@@ -388,24 +305,23 @@ function updateUI(data){
     console.error('Element not found:', data.coords);
         }
 }
-function nextTurn(){
-  turn += 1
-  moveCompleted = false
-  console.log("turn: " + turn)
-  currentPlayer = turn % 2
-  if (currentPlayer == 1){
-    premoveWhite = false
-  }
-  else {
-    premoveWhite = true
-  }
-  console.log("current player: " + currentPlayer)
-  pausedPlayer = 1 - turn % 2
-  timer = timeList[currentPlayer]
-  clearInterval(clockPause [pausedPlayer])
-  clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
-  player = players[currentPlayer]
-}
+// function nextTurn(){
+//   turn += 1
+//   console.log("turn: " + turn)
+//   currentPlayer = turn % 2
+//   // if (currentPlayer == 1){
+//   //   premoveWhite = false
+//   // }
+//   // else {
+//   //   premoveWhite = true
+//   // }
+//   console.log("current player: " + currentPlayer)
+//   pausedPlayer = 1 - turn % 2
+//   timer = timeList[currentPlayer]
+//   clearInterval(clockPause [pausedPlayer])
+//   clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
+//   player = players[currentPlayer]
+// }
 function start() {
   var clickedElement = document.getElementsByClassName('piece');
   var urlDict = {}
@@ -418,15 +334,6 @@ function start() {
     }
   } 
 
-  // Premove stuff
-  document.addEventListener('keydown', function(event) {
-    if (event.key === ' ' && currentPlayer == 0 && moveCompleted == true) {
-      console.log("Spacebar pressed. Premove disabled.");
-      storedMove = 0
-      nextTurn()
-    }
-  });
-
 function botMove(){
     fetch('/bot_move', {
       method: 'POST',
@@ -438,11 +345,37 @@ function botMove(){
     .then(data => {
       botPromote = data.pop()
       botData = botMoveUpdate(data)
-      oneTimeListener = createEventListener([""], ...botData, botPromote)
+      oneTimeListener = createEventListener([""], ...botData, botPromote, [""])
       oneTimeListener()
       
     })
   }
+  function nextTurn(){
+  turn += 1
+  console.log("turn: " + turn)
+  currentPlayer = turn % 2
+  // if (currentPlayer == 1){
+  //   premoveWhite = false
+  // }
+  // else {
+  //   premoveWhite = true
+  // }
+  console.log("current plaassyer: " + currentPlayer)
+  pausedPlayer = 1 - turn % 2
+  timer = timeList[currentPlayer]
+  clearInterval(clockPause [pausedPlayer])
+  clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
+  player = players[currentPlayer]
+  // console.log(storedMove)
+  console.log("bhksdbkhabj")
+  if ((storedMove != 0) && (turn %2 ==0)){
+    console.log("stored move")
+    console.log(storedMove)
+    oneTimeListener = createEventListener([""], "", "", "", "", storedMove);
+      oneTimeListener()
+  }
+}
+  
 function buttonClick(piece, xValue, yValue){
     Element = [piece, xValue, yValue]
     oneTimeListener = createEventListener(Element)
@@ -474,7 +407,8 @@ document.addEventListener('click', function(event) {
 }
 
 });
-  function createEventListener(Element, botX, botY, botPiece, botPromote) {
+  function createEventListener(Element, botX, botY, botPiece, botPromote, moveStorage) {
+
     return function() {
     if (typeof(Element[0]) == "string" || Element.classList?.contains('dot')) {
       if(Element.classList?.contains('dot')){
@@ -511,13 +445,12 @@ document.addEventListener('click', function(event) {
           removeButtons = 1
           return
         
-        } } else if (typeof(Element[0]) == "string" && botX == undefined) {
+        } } else if (typeof(Element[0]) == "string" && botX == undefined && moveStorage == undefined) {
           document.removeEventListener('click', oneTimeListener)
           promote = Element[0]
           xValue = Element[1]
           yValue = Element[2]
-    }else if (typeof(Element[0]) == "string"){
-      // document.removeEventListener('click', oneTimeListener)
+    }else if (typeof(Element[0]) == "string" && moveStorage == undefined){
       promote = false
       xValue = botX
       yValue = botY
@@ -543,22 +476,78 @@ document.addEventListener('click', function(event) {
         }
       }
     }
+    console.log(moveStorage)
+    if (moveStorage != undefined){
+      move = 'true'
+      xValue = moveStorage.xValue
+      yValue = moveStorage.yValue
+      console.log("stored move")
+    } else {
       move = {
-          oldCoordinates : lastClicked.getAttribute('data-coordinates'),
-          newCoordinates: [xValue,yValue],
-          promote:promote
-        };
-        moveData = {
-          xValue:xValue, yValue:yValue, coords:coords, move:move}
-        if (moveCompleted == false){
-          
-        movePiece(moveData)
-        console.log(moveData)
-          
+        oldCoordinates : lastClicked.getAttribute('data-coordinates'),
+        newCoordinates: [xValue,yValue],
+        promote:promote
+      };
+    }
+      moveData = {
+        xValue:xValue, yValue:yValue, move:move}
         
-        }
-        else if (currentPlayer == 0) {
-          fetch('/store_move', {
+      if ((!Element.classList?.contains('premove'))) {
+        console.log(Element)
+       
+        fetch('/move_piece', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        
+        body: JSON.stringify(move)
+        })
+        .then(response =>{
+          if(!response.ok){
+            console.log("error")
+          }
+          return(response.json())
+        }) 
+        .then(data => {
+          if (data[0] == 1 || data[0] == -1){
+            yValue += data[0]
+            // updateVariable([xValue,yValue])
+            enPassant([xValue,yValue])
+          } else if (data[0] == 2 || data[0] == -4){
+            castling([data[0],xValue,yValue])
+          } else if (pieceList[0].includes(data[0]) || pieceList[1].includes(data[0])){
+            promotion([data[0], xValue, yValue])
+          }
+          if (data[data.length-1] =='check' || data[data.length-1] == 'checkmate'){
+            if (turn %2 == 0){
+              var king = ["king_white", "king_black"]
+            } else {
+              var king = ["king_black", "king_white"]
+            }
+            if (data[data.length-1] =='check'){
+              updateVariable(king)
+              kingCheck(king)
+            } else {
+            checkmate(king)
+            }
+          } else if (data[data.length-1] =='stalemate') {
+            stalemate(king)
+          } else if (data[data.length-1] =='repetition') {
+            repetition(king)
+          }
+          if (player == "computer"){
+            botMove()
+          }
+          
+        })
+        
+        movePiece(moveData)
+        nextTurn()
+      }
+      else{
+        console.log("premove")
+        fetch('/store_move', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -573,18 +562,17 @@ document.addEventListener('click', function(event) {
         }) 
         .then(data => {
           storedMove = data
-          nextTurn()
+          console.log("gavjgdvsj")
+          console.log(storedMove)
         })
-        }
-    } else if (Element.dataset.colour == "chess.WHITE" && turn %2 == 0 && (player_colour == "white" || choice == "player") || Element.dataset.colour == "chess.BLACK" && turn %2 == 1 && (player_colour == "black"|| choice == "player")){
+      }
+        
+    } else if (Element.classList?.contains('piece')) {
         lastClicked = Element
           const jsonData = {
-            coords: Element.getAttribute('data-coordinates'),
-            move_completed: moveCompleted
+            coords: Element.getAttribute('data-coordinates')
           };
           coords = jsonData.coords
-          let moveType
-          
           fetch('/move_generator', {
             method: 'POST',
             headers: {
@@ -595,11 +583,16 @@ document.addEventListener('click', function(event) {
           .then(response => response.json())
           .then(data => {
             lastClicked.parentNode.style.border = `${borderSize} solid blue`
+            var premove = 'none'
+            if (Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 || Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1){
+              premove = "premove"
+            }
             data.forEach(function(item){
               
               [x, y] = item.split(',').map(coord => parseInt(coord, 10));
               var dotElement = document.createElement('span');
               dotElement.classList.add('dot'); 
+              dotElement.classList.add(premove);
               dotElement.dataset.x = x;
               dotElement.dataset.y = y;
               const dotSquare = document.querySelector(`.chess-square[data-coordinates="${x},${y}"]`);
@@ -611,9 +604,7 @@ document.addEventListener('click', function(event) {
           console.error('Error:', error);
         });
       
-    } else if (Element.dataset.colour == "chess.WHITE" && turn %2 == 0 && (player_colour == "white" || choice == "player") ){
-    }
-  };
+    }};
   }
 };
 start()

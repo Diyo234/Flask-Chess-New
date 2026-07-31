@@ -9,12 +9,9 @@ timeList = [whiteTime, blackTime]
 clockPause = [0,0]
 var score = 0
 var turn = 0
-<<<<<<< HEAD
 var currentPlayer = turn % 2
 var premoveWhite = true
 var storedMove = 0
-=======
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
 var player = players[0]
 var removeButtons = 4
 var oneTimeListener = 0
@@ -99,7 +96,6 @@ function moveAction(data){
     redSquare[0].style.border = "none"
   }
   updateUI(data);
-<<<<<<< HEAD
     // nextTurn()
   // turn += 1
   // currentPlayer = turn % 2
@@ -108,15 +104,6 @@ function moveAction(data){
   // clearInterval(clockPause [pausedPlayer])
   // clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
   // player = players[currentPlayer]
-=======
-  turn += 1
-  currentPlayer = turn % 2
-  pausedPlayer = 1 - turn % 2
-  timer = timeList[currentPlayer]
-  clearInterval(clockPause [pausedPlayer])
-  clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
-  player = players[currentPlayer]
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
   newLoc = document.querySelector(`.chess-square[data-coordinates="${data.xValue},${data.yValue}"]`)
   previousLoc = document.querySelector(`.chess-square[data-coordinates="${data.coords}"]`)
   if (kingBlackSquare == true){
@@ -318,7 +305,6 @@ function updateUI(data){
     console.error('Element not found:', data.coords);
         }
 }
-<<<<<<< HEAD
 // function nextTurn(){
 //   turn += 1
 //   console.log("turn: " + turn)
@@ -336,8 +322,6 @@ function updateUI(data){
 //   clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
 //   player = players[currentPlayer]
 // }
-=======
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
 function start() {
   var clickedElement = document.getElementsByClassName('piece');
   var urlDict = {}
@@ -426,7 +410,7 @@ document.addEventListener('click', function(event) {
   function createEventListener(Element, botX, botY, botPiece, botPromote, moveStorage) {
 
     return function() {
-    if (typeof(Element[0]) == "string" || (Element.classList?.contains('dot'))&& (Element.classList?.contains('move_generator'))) {
+    if (typeof(Element[0]) == "string" || Element.classList?.contains('dot')) {
       if(Element.classList?.contains('dot')){
         var xValue = Element.dataset.x;
         var yValue = Element.dataset.y;
@@ -492,7 +476,6 @@ document.addEventListener('click', function(event) {
         }
       }
     }
-<<<<<<< HEAD
     console.log(moveStorage)
     if (moveStorage != undefined){
       move = 'true'
@@ -501,14 +484,10 @@ document.addEventListener('click', function(event) {
       console.log("stored move")
     } else {
       move = {
-=======
-      const move = {
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
         oldCoordinates : lastClicked.getAttribute('data-coordinates'),
         newCoordinates: [xValue,yValue],
         promote:promote
       };
-<<<<<<< HEAD
     }
       moveData = {
         xValue:xValue, yValue:yValue, move:move}
@@ -522,17 +501,6 @@ document.addEventListener('click', function(event) {
             'Content-Type': 'application/json',
           },
         
-=======
-      moveData = {
-        xValue:xValue, yValue:yValue, coords:coords}
-        movePiece(moveData)
-        fetch('/move_piece', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
         body: JSON.stringify(move)
         })
         .then(response =>{
@@ -571,7 +539,6 @@ document.addEventListener('click', function(event) {
           if (player == "computer"){
             botMove()
           }
-<<<<<<< HEAD
           
         })
         
@@ -581,21 +548,6 @@ document.addEventListener('click', function(event) {
       else{
         console.log("premove")
         fetch('/store_move', {
-=======
-        })
-    } else if (Element.classList?.contains('dot') && (Element.classList?.contains('premove_generator'))) {
-      var xValue = Element.dataset.x;
-        var yValue = Element.dataset.y;
-      const move = {
-        oldCoordinates : lastClicked.getAttribute('data-coordinates'),
-        newCoordinates: [xValue,yValue],
-        promote:promote
-      };
-      moveData = {
-        xValue:xValue, yValue:yValue, coords:coords, move:move}
-        console.log(moveData)
-      fetch('/store_move', {
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -610,19 +562,12 @@ document.addEventListener('click', function(event) {
         }) 
         .then(data => {
           storedMove = data
-<<<<<<< HEAD
           console.log("gavjgdvsj")
           console.log(storedMove)
         })
       }
         
     } else if (Element.classList?.contains('piece')) {
-=======
-        })
-        
-    }
-    else if ((Element.classList?.contains('piece') && choice != "computer") || (Element.classList?.contains('piece') && choice == "computer" && player == "player")){
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
         lastClicked = Element
           const jsonData = {
             coords: Element.getAttribute('data-coordinates')
@@ -637,8 +582,6 @@ document.addEventListener('click', function(event) {
           })
           .then(response => response.json())
           .then(data => {
-            console.log(data)
-            moveType = data.pop()
             lastClicked.parentNode.style.border = `${borderSize} solid blue`
             var premove = 'none'
             if (Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 || Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1){
@@ -652,7 +595,6 @@ document.addEventListener('click', function(event) {
               dotElement.classList.add(premove);
               dotElement.dataset.x = x;
               dotElement.dataset.y = y;
-              dotElement.classList.add(moveType);
               const dotSquare = document.querySelector(`.chess-square[data-coordinates="${x},${y}"]`);
               dotSquare.appendChild(dotElement)
               dotElement.addEventListener('click', createEventListener(dotElement));

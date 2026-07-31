@@ -12,9 +12,11 @@ letters = "a", "b", "c", "d", "e", "f", "g", "h"
 views = Blueprint('views', __name__)
 @views.route('/', methods=['GET', 'POST'])
 def home():
-    session['current_fen'] = chess.STARTING_FEN
+    global chessboard
+    session['chessboard'] = chess.STARTING_FEN
     session['moves'] = []
     session['premove'] = None
+    chessboard = chess.Board()
     return render_template("home.html", user=current_user)
 
 
@@ -71,37 +73,32 @@ def castling(data):
 @socketio.on('promotion')
 def promotion(data):
     socketio.emit('promoted', data)
+@views.route('/handle_click', methods=['POST'])
+def handle_click():
+    piece = request.json['piece']
+    response = {'message': f'Piece "{piece}" clicked'}
+    return jsonify(response)
 
 @views.route('/move_generator', methods=['POST'])
 def calculated_move():
-<<<<<<< HEAD
     chessboard.set_fen(session['chessboard'])
-=======
-    chessboard = chess.Board(session['current_fen'])
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
     data = request.json
     coords = data.get("coords")
     coords = letters[int(coords[0])]+str(8-int(coords[2]))
     square = chess.parse_square(coords)
     piece = chessboard.piece_at(square)
-<<<<<<< HEAD
     if piece is None:
         return jsonify([])
     if (chessboard.turn == chess.WHITE and piece.color == chess.WHITE) or (chessboard.turn == chess.BLACK and piece.color == chess.BLACK):
         result = move_generator(coords)
     elif (chessboard.turn == chess.BLACK and piece.color == chess.WHITE) or (chessboard.turn == chess.WHITE and piece.color == chess.BLACK):
-=======
-    if piece.color == chess.WHITE and chessboard.turn == chess.BLACK:
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
         result = premove_generator(coords)
-    else:
-        result = move_generator(coords)
 
     return jsonify(result)
 
 
 def move_generator(coords):
-    chessboard = chess.Board(session['current_fen'])
+    chessboard.set_fen(session['chessboard'])
     altered_moves = []
     square = chess.parse_square(coords)
     legal_moves = chessboard.legal_moves
@@ -110,10 +107,9 @@ def move_generator(coords):
         x = str(letters.index(move[2]))
         y = str(8-int(move[3]))
         altered_moves.append(x+","+y)
-    altered_moves.append('move_generator')
     return(altered_moves)
 def premove_generator(coords):
-    chessboard = chess.Board(session['current_fen'])
+    chessboard.set_fen(session['chessboard'])
     altered_moves = []
     square = chess.parse_square(coords)
     piece = chessboard.piece_at(square)
@@ -175,20 +171,17 @@ def premove_generator(coords):
             x = str(letters.index(move[2]))
             y = str(8-int(move[3]))
             altered_moves.append(x+","+y)
-    altered_moves.append('premove_generator')
     return(altered_moves)
 
 @views.route('/move_piece', methods=['POST'])
 def move(move = None):
-    print("this is where")
-    chessboard = chess.Board()
+    chessboard.set_fen(chess.STARTING_FEN)
     for previous_move in session['moves']:
         chessboard.push_uci(previous_move)
     state = []
     if move == None:
         print("no move")
         data = json.loads(request.data)
-<<<<<<< HEAD
         if type(data) == str:
             move = session['premove']
         else:
@@ -206,22 +199,6 @@ def move(move = None):
                 else:
                     move += promote[0]
                 state.append(promote)
-=======
-        old_coords = data.get('oldCoordinates')
-        new_coords = data.get('newCoordinates')
-        promote = data.get('promote')
-        string_one = letters[int(old_coords[0])]
-        string_two = str(8 - int(old_coords[-1]))
-        string_three = letters[new_coords[0]]
-        string_four = str(8 - new_coords[-1])
-        move = string_one+string_two+string_three+string_four
-        if promote != False:
-            if promote == 'knight_black' or promote == 'knight_white':
-                move += 'n'
-            else:
-                move += promote[0]
-            state.append(promote)
->>>>>>> a3b3ede915af8bc2c03a25df9b5cd8aa933cfd8e
     if chessboard.is_en_passant(chess.Move.from_uci(move)):
         if chessboard.turn == chess.BLACK:
             state.append(-1)
@@ -242,7 +219,7 @@ def move(move = None):
     session['moves'].append(move)
     chessboard.push_uci(move)
     print(move)
-    session['current_fen'] = chessboard.fen()
+    session['chessboard'] = chessboard.fen()
     if chessboard.is_check():
         if chessboard.is_checkmate():
             state.append('checkmate')
@@ -257,6 +234,7 @@ def move(move = None):
     elif chessboard.is_insufficient_material():
         state.append('insufficient_material')
     print(chessboard)
+    print("tes")
     return jsonify(state)
 
 @views.route('/store_move', methods=['POST'])
@@ -269,8 +247,8 @@ def store_move():
     promote = move.get('promote')
     string_one = letters[int(old_coords[0])]
     string_two = str(8 - int(old_coords[-1]))
-    string_three = letters[int(new_coords[0])]
-    string_four = str(8 - int(new_coords[-1]))
+    string_three = letters[new_coords[0]]
+    string_four = str(8 - new_coords[-1])
     move = string_one+string_two+string_three+string_four
     session['premove'] = move
     return jsonify(data)
@@ -282,8 +260,7 @@ def move_piece(data):
 
 @views.route('/bot_move', methods=['POST'])
 def bot_move():
-    print("bot move")
-    chessboard = chess.Board(session['current_fen'])
+    chessboard.set_fen(session['chessboard'])
     bot_move = best_move(chessboard.fen())
     x = str(letters.index(bot_move[0]))
     y = str(8-int(bot_move[1]))
@@ -295,7 +272,7 @@ def bot_move():
     if len(bot_move) == 4:
         bot_move = 0
     altered_moves.append(bot_move)
-    # session['current_fen'] = chessboard.fen()
+    # session['chessboard'] = chessboard.fen()
     return(altered_moves)
 
 @views.route('/select_level', methods=['POST'])

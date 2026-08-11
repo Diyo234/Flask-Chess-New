@@ -6,12 +6,14 @@ var whiteTime = document.getElementById('white-time')
 var blackTime = document.getElementById('black-time')
 // blackTime.textContent = 600
 timeList = [whiteTime, blackTime]
-clockPause = [0,0]
+clockPause = [0, 0]
 var score = 0
 var turn = 0
 var currentPlayer = turn % 2
-var premoveWhite = true
-var storedMove = 0
+var storedMoves = []
+var premoveCaptures = []
+var moveCompleted = false
+var premoveCompleted = false
 var player = players[0]
 var removeButtons = 4
 var oneTimeListener = 0
@@ -20,83 +22,80 @@ var pieceList = [
   ['queen_white', 'knight_white', 'rook_white', 'bishop_white'],
   ['queen_black', 'knight_black', 'rook_black', 'bishop_black']
 ]
-if (choice == 'online' || choice == 'opponent'){
+if (choice == 'online' || choice == 'opponent') {
   url = urlForOnline
-} else if (choice == 'player' || choice == 'computer'){
+} else if (choice == 'player' || choice == 'computer') {
   url = urlForOffline
+  console.log(players)
 }
 loadScript(url)
-if (choice == 'computer'){
+// if (choice == 'computer'){
+if (choice) {
   function startTimer() {
   }
 }
-else {  
+else {
   function startTimer(duration, display) {
     var timer = duration, minutes, seconds;
     var intervalID = setInterval(function () {
-        minutes = parseInt(timer / 60, 10)
-        seconds = parseInt(timer % 60, 10);
+      minutes = parseInt(timer / 60, 10)
+      seconds = parseInt(timer % 60, 10);
 
-        minutes = minutes < 10 ? "0" + minutes : minutes;
-        seconds = seconds < 10 ? "0" + seconds : seconds;
+      minutes = minutes < 10 ? "0" + minutes : minutes;
+      seconds = seconds < 10 ? "0" + seconds : seconds;
 
-        display.textContent = minutes + ":" + seconds;
-        display.setAttribute('clock-value' , timer);
-        if (--timer < 0) {
-            clearInterval(intervalID)
-            timer = 0;
-            console.log(display)
-            if (display.id == 'white-time'){
-                opponentPieces = document.querySelectorAll(".piece[data-colour = 'chess.BLACK']")
-                var king = ["king_white", "king_black"]
-            }
-            else{
-                opponentPieces = document.querySelectorAll(".piece[data-colour = 'chess.WHITE']")
-                var king = ["king_black", "king_white"]
-            }
-            console.log(opponentPieces)
-            var total = 0
-            opponentPieces.forEach(element => {
-                console.log(element)
-                console.log(parseInt(element.dataset.value, 10))
-                total += parseInt(element.dataset.value, 10)
-            });
-            total = Math.abs(total)
-            console.log(total)
-            if (total == 0){
-                stalemate()
-            } else if (total == 3){
-                pawnPresent = false
-                opponentPieces.forEach(element => {
-                    if (element.dataset.type == 'chess.PAWN'){
-                        pawnPresent = true
-                    }
-                });
-                if (pawnPresent == false){
-                    checkmate(king)
-                } else {
-                    stalemate()
-                }
-            } else {
-                checkmate(king)
-            }
-            return
+      display.textContent = minutes + ":" + seconds;
+      display.setAttribute('clock-value', timer);
+      if (--timer < 0) {
+        clearInterval(intervalID)
+        timer = 0;
+        if (display.id == 'white-time') {
+          opponentPieces = document.querySelectorAll(".piece[data-colour = 'chess.BLACK']")
+          var king = ["king_white", "king_black"]
         }
+        else {
+          opponentPieces = document.querySelectorAll(".piece[data-colour = 'chess.WHITE']")
+          var king = ["king_black", "king_white"]
+        }
+        var total = 0
+        opponentPieces.forEach(element => {
+          total += parseInt(element.dataset.value, 10)
+        });
+        total = Math.abs(total)
+        if (total == 0) {
+          stalemate()
+        } else if (total == 3) {
+          pawnPresent = false
+          opponentPieces.forEach(element => {
+            if (element.dataset.type == 'chess.PAWN') {
+              pawnPresent = true
+            }
+          });
+          if (pawnPresent == false) {
+            checkmate(king)
+          } else {
+            stalemate()
+          }
+        } else {
+          checkmate(king)
+        }
+        return
+      }
     }, 1000);
-    return(intervalID)
+    return (intervalID)
   }
 }
-function moveAction(data){
-  if (turn > 0 ){
+function moveAction(data, premove = false, premoveCapture = false) {
+  if (turn > 0 && !premove) {
     previousLoc.style.border = "none"
     newLoc.style.border = "none"
   }
   var redSquare = chessboard.querySelectorAll(`.chess-square[style*="border: ${borderSize} solid red;"]`);
-  if (redSquare[0]){
+  if (redSquare[0] && !premove) {
     redSquare[0].style.border = "none"
   }
-  updateUI(data);
-    // nextTurn()
+  updateUI(data, premove, premoveCapture = false);
+  // nextTurn()
   // turn += 1
   // currentPlayer = turn % 2
   // pausedPlayer = 1 - turn % 2
@@ -106,126 +105,202 @@ function moveAction(data){
   // player = players[currentPlayer]
   newLoc = document.querySelector(`.chess-square[data-coordinates="${data.xValue},${data.yValue}"]`)
   previousLoc = document.querySelector(`.chess-square[data-coordinates="${data.coords}"]`)
-  if (kingBlackSquare == true){
+  if (kingBlackSquare == true && !premove) {
     kingBlackSquare = false
     kings = document.querySelectorAll(`.piece[data-type="chess.KING"]`)
     kings.forEach(element => {
-      if (element.parentNode.style.border == `${borderSize} solid black`){
+      if (element.parentNode.style.border == `${borderSize} solid black`) {
         element.parentNode.style.border = "none"
       }
     });
   }
+  if (!premove) {
   newLoc.style.border = `${borderSize} solid black`
   previousLoc.style.border = `${borderSize} solid black`
-  
 }
 
-function castlingAction(data){
-    data[1] += data[0]/2
+}
+
+function castlingAction(data) {
+  data[1] += data[0] / 2
   const rook = document.querySelectorAll(`.piece[data-coordinates="${data[1]},${data[2]}"][data-type="chess.ROOK"]`);
+  
   data[1] -= data[0];
-  if (data[0] == -4){
+  if (data[0] == -4) {
     data[1] -= 1
   }
   rook[0].setAttribute('data-coordinates', `${data[1]},${data[2]}`);
   var rookSquare = document.querySelector(`.chess-square[data-coordinates="${data[1]},${data[2]}"]`);
   rookSquare.appendChild(rook[0]);
 }
-function promotionAction(data){
+function promotionAction(data, premove = false) {
   const parts = data[0].split('_')
   const promotedPawn = document.querySelector(`.piece[data-coordinates="${data[1]},${data[2]}"]`);
   promotedPawn.src = `/static/images/${data[0]}.png`;
-  promotedPawn.alt = data.enPassant;
   promotedPawn.setAttribute('data-piece', `${data[0]}`)
   promotedPawn.setAttribute('data-type', `chess.${parts[0].toUpperCase()}`)
-  if (parts[0] == 'queen'){
-    newValue = 9
-  } else if (parts[0] == 'rook'){
-    newValue = 5
-  }else{
-    newValue = 3
+  if (!premove) {
+    
+    promotedPawn.alt = data.enPassant;
+    if (parts[0] == 'queen') {
+      newValue = 9
+    } else if (parts[0] == 'rook') {
+      newValue = 5
+    } else {
+      newValue = 3
+    }
+    promotedPawn.setAttribute('data-value', newValue * parseInt(promotedPawn.dataset.value, 10))
+    score -= parseInt(promotedPawn.dataset.value, 10)
+    updateScore()
   }
-  promotedPawn.setAttribute('data-value', newValue*parseInt(promotedPawn.dataset.value, 10))
-  score -= parseInt(promotedPawn.dataset.value, 10)
-  updateScore()
 }
-function checkmateAction(data){
-    losingKing = document.querySelector(`.piece[alt="${data[0]}"]`)
-    losingKing.parentNode.style.backgroundColor = "red"
-    winningKing = document.querySelector(`.piece[alt="${data[1]}"]`)
-    winningKing.parentNode.style.backgroundColor = "green"
-    turn += 0.2
+function checkmateAction(data) {
+  losingKing = document.querySelector(`.piece[alt="${data[0]}"]`)
+  losingKing.parentNode.style.backgroundColor = "red"
+  winningKing = document.querySelector(`.piece[alt="${data[1]}"]`)
+  winningKing.parentNode.style.backgroundColor = "green"
+  turn += 0.2
 }
-function stalemateAction(data){
-    whiteKing = document.querySelector(`.piece[alt="king_white"]`)
+function stalemateAction(data) {
+  whiteKing = document.querySelector(`.piece[alt="king_white"]`)
   blackKing = document.querySelector(`.piece[alt="king_black"]`)
   whiteKing.parentNode.style.backgroundColor = "yellow"
   blackKing.parentNode.style.backgroundColor = "yellow"
   turn += 0.2
 }
-function repetitionAction(data){
-    whiteKing = document.querySelector(`.piece[alt="king_white"]`)
+function repetitionAction(data) {
+  whiteKing = document.querySelector(`.piece[alt="king_white"]`)
   blackKing = document.querySelector(`.piece[alt="king_black"]`)
   whiteKing.parentNode.style.backgroundColor = "yellow"
   blackKing.parentNode.style.backgroundColor = "yellow"
   turn += 0.2
+}
+
+function reverseActionUI(index = false) {
+  if (index !== false) {
+    moveStorage = storedMoves[index]
+  } else {
+
+  moveStorage = storedMoves.pop()
+  }
+  
+              oldCoordinates = moveStorage.move.oldCoordinates
+              moveStorageReversed = Object.assign({}, moveStorage);
+              moveStorageReversed.coords = `${moveStorage.xValue},${moveStorage.yValue}`
+              premoveCapture = premoveCaptures.pop(0)
+              console.log(premoveCaptures)
+              console.log(premoveCaptures.length);
+              if (premoveCapture) {
+                if (moveStorage.castling == 2) {
+                  rookSquare = document.querySelector(`.chess-square[data-coordinates="${moveStorage.xValue + 1},${moveStorage.yValue}"]`);
+                  rookPiece = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue - 1},${moveStorage.yValue}"][data-type="chess.ROOK"]`);
+                  rookPiece.setAttribute('data-coordinates', `${moveStorage.xValue + 1},${moveStorage.yValue}`)
+                  rookSquare.appendChild(rookPiece)
+                } else if (moveStorage.castling == -4) {
+                  rookSquare = document.querySelector(`.chess-square[data-coordinates="${moveStorage.xValue - 2},${moveStorage.yValue}"]`);
+                  rookPiece = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue + 1},${moveStorage.yValue}"][data-type="chess.ROOK"]`);
+                  rookPiece.setAttribute('data-coordinates', `${moveStorage.xValue - 2},${moveStorage.yValue}`)
+                  rookSquare.appendChild(rookPiece)
+                }
+                for (i = 0; i < premoveCapture.length; i++) {
+                  premoveCapturePiece = premoveCapture[i]
+                  if (premoveCapturePiece == 'pawn_white' || premoveCapturePiece == 'pawn_black') {
+                    console.log("pawn promotion")
+                    const promotedPawn = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue},${moveStorage.yValue}"]`);
+                    promotedPawn.src = `/static/images/${premoveCapturePiece}.png`;
+                    promotedPawn.setAttribute('data-piece', `${premoveCapturePiece}`)
+                    promotedPawn.setAttribute('data-type', 'chess.PAWN')
+
+                  } else {
+                    
+                  destinationSquare = document.querySelector(`.chess-square[data-coordinates="${premoveCapturePiece.dataset.coordinates}"]`);
+                  destinationSquare.appendChild(premoveCapturePiece)
+                  }
+                }
+              }
+              const [x, y] = oldCoordinates.split(',').map(coord => parseInt(coord, 10));
+              moveStorageReversed.xValue = x
+              moveStorageReversed.yValue = y
+              movePiece(moveStorageReversed, premove = 'reversed', premoveCapture)
+}
+function reverseAction(){
+         fetch('/pop_premove', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          })
+            .then(response => {
+              if (!response.ok) {
+                console.log("error")
+              }
+              return (response.json())
+            })
+            .then(data => {
+              reverseActionUI()
+              
+
+              
+            })
+        
+      
 }
 //////
-function kingAction(data){
+function kingAction(data) {
   king = document.querySelector(`.piece[alt="${data[0]}"]`)
   king.parentNode.style.border = `${borderSize} solid red`
 }
-function updateTakenSquare(piece){
+function updateTakenSquare(piece) {
   let isPresent = Array.from(takenSquare.children).some(existingPiece => existingPiece.firstChild?.src === piece.src);
   if (!isPresent) {
-      takenPiece = document.createElement('img');
-      takenPiece.src = piece.src;
-      takenPiece.value = piece.dataset.value
-      takenPiece.number = 1
-      takenPiece.classList.add('resize')
-      takenPiece.style.height = resizeHeight
-      takenPiece.type = piece.dataset.type
-      square = takenSquare.children[4]
-      square.id = piece.dataset.value;
-      square.appendChild(takenPiece)
-      if (takenPiece.type == "chess.PAWN"){
+    takenPiece = document.createElement('img');
+    takenPiece.src = piece.src;
+    takenPiece.value = piece.dataset.value
+    takenPiece.number = 1
+    takenPiece.classList.add('resize')
+    takenPiece.style.height = resizeHeight
+    takenPiece.type = piece.dataset.type
+    square = takenSquare.children[4]
+    square.id = piece.dataset.value;
+    square.appendChild(takenPiece)
+    if (takenPiece.type == "chess.PAWN") {
+      takenSquare.insertBefore(square, takenSquare.children[0] || null)
+    } else if (takenPiece.type == "chess.KNIGHT") {
+      if (takenSquare.children[0]?.firstChild?.type !== "chess.PAWN") {
         takenSquare.insertBefore(square, takenSquare.children[0] || null)
-      }else if (takenPiece.type == "chess.KNIGHT"){
-        if (takenSquare.children[0]?.firstChild?.type !== "chess.PAWN"){
-          takenSquare.insertBefore(square, takenSquare.children[0] || null)
-        }else{
-          takenSquare.insertBefore(square, takenSquare.children[1] || null)
-        }
-      }else if (takenPiece.type == "chess.BISHOP"){
-        if((takenSquare.children[0]?.firstChild?.type !== "chess.PAWN") && (takenSquare.children[0]?.firstChild?.type != "chess.KNIGHT")){
-          takenSquare.insertBefore(square, takenSquare.children[0] || null)
-        }else if(takenSquare.children[1]?.firstChild?.type != "chess.KNIGHT"){
-          takenSquare.insertBefore(square, takenSquare.children[1] || null)
-        }else{
-          takenSquare.insertBefore(square, takenSquare.children[2] || null)
-        }
-      }else {
-        let elementsInsideTakenSquare = takenSquare.querySelectorAll('.container');
-        position = takenSquare.firstChild
-        for (let i = 0; i < elementsInsideTakenSquare.length; i++) {
-          let item = elementsInsideTakenSquare[i];
-          if (item.firstChild?.classList == "resize" ){
-            position = item
-            if (item.firstChild?.type == "chess.QUEEN"){
-              break
-            }
-          } else{
-            position = item
+      } else {
+        takenSquare.insertBefore(square, takenSquare.children[1] || null)
+      }
+    } else if (takenPiece.type == "chess.BISHOP") {
+      if ((takenSquare.children[0]?.firstChild?.type !== "chess.PAWN") && (takenSquare.children[0]?.firstChild?.type != "chess.KNIGHT")) {
+        takenSquare.insertBefore(square, takenSquare.children[0] || null)
+      } else if (takenSquare.children[1]?.firstChild?.type != "chess.KNIGHT") {
+        takenSquare.insertBefore(square, takenSquare.children[1] || null)
+      } else {
+        takenSquare.insertBefore(square, takenSquare.children[2] || null)
+      }
+    } else {
+      let elementsInsideTakenSquare = takenSquare.querySelectorAll('.container');
+      position = takenSquare.firstChild
+      for (let i = 0; i < elementsInsideTakenSquare.length; i++) {
+        let item = elementsInsideTakenSquare[i];
+        if (item.firstChild?.classList == "resize") {
+          position = item
+          if (item.firstChild?.type == "chess.QUEEN") {
             break
           }
-        
+        } else {
+          position = item
+          break
+        }
+
       }
-      takenSquare.insertBefore(square,position || null)
-      }
-  } else{
+      takenSquare.insertBefore(square, position || null)
+    }
+  } else {
     isPresent.number += 1
     multiplier = takenSquare.querySelector(`img[src="${piece.src}"]`)
-    multiplier.number+=1
+    multiplier.number += 1
     multiplier.textContent = `X${multiplier.number}`
     const newText = document.createElement('div');
     newText.textContent = multiplier.textContent
@@ -234,7 +309,7 @@ function updateTakenSquare(piece){
     newText.style.right = "0";
     newText.id = "text"
     textSquare = document.getElementById(piece.dataset.value)
-    if (multiplier.number > 2){
+    if (multiplier.number > 2) {
       oldText = textSquare.querySelector("#text")
       textSquare.removeChild(oldText)
 
@@ -243,67 +318,141 @@ function updateTakenSquare(piece){
 
   }
 }
-function enPassantAction(data){
-    deletionSquare = document.querySelector(`.chess-square[data-coordinates="${data[0]},${data[1]}"]`);
-    while (deletionSquare.firstChild) {
-      piece = deletionSquare.firstChild
-      deletionSquare.removeChild(piece);
-      if (piece.classList == 'piece'){
-        score += parseInt(piece.dataset.value, 10)
-        updateScore()
-        if (piece.dataset.colour == 'chess.WHITE'){
-          takenSquare = document.getElementById('white-taken')
-        } else if (piece.dataset.colour == 'chess.BLACK'){
-          takenSquare = document.getElementById('black-taken')
-        }
-        updateTakenSquare(piece)
+function enPassantAction(data) {
+  deletionSquare = document.querySelector(`.chess-square[data-coordinates="${data[0]},${data[1]}"]`);
+  while (deletionSquare.firstChild) {
+    piece = deletionSquare.firstChild
+    deletionSquare.removeChild(piece);
+    if (piece.classList == 'piece') {
+      score += parseInt(piece.dataset.value, 10)
+      updateScore()
+      if (piece.dataset.colour == 'chess.WHITE') {
+        takenSquare = document.getElementById('white-taken')
+      } else if (piece.dataset.colour == 'chess.BLACK') {
+        takenSquare = document.getElementById('black-taken')
       }
+      updateTakenSquare(piece)
     }
-  
+  }
+
 }
-function updateScore(){
+function updateScore() {
   oldScore = document.querySelector('#score')
-  if (oldScore){
+  if (oldScore) {
     oldScore.parentNode.removeChild(oldScore)
   }
-  if (score < 0){
+  if (score < 0) {
     const newScore = document.createElement('div');
     newScore.textContent = `+${score * (-1)}`
     newScore.style.fontSize = "3vh"
     newScore.id = "score"
     document.getElementById('black-taken').lastElementChild.appendChild(newScore)
-  } else if (score > 0){
+  } else if (score > 0) {
     const newScore = document.createElement('div');
-    newScore.textContent = `+${score }`
+    newScore.textContent = `+${score}`
     newScore.style.fontSize = "3vh"
     newScore.id = "score"
     document.getElementById('white-taken').lastElementChild.appendChild(newScore)
   }
 }
-function updateUI(data){
+function updateUI(data, premove = false, premoveCapture = false) {
   lastClicked = document.querySelector(`.piece[data-coordinates="${data.coords}"]`);
+  if (!lastClicked) {
+    lastClicked = document.querySelector(`.piece[data-coordinates="${data.xValue},${data.yValue}"]`);
+    
+  }
   if (lastClicked) {
     lastClicked.setAttribute('data-coordinates', `${data.xValue},${data.yValue}`)
     const destinationSquare = document.querySelector(`.chess-square[data-coordinates="${data.xValue},${data.yValue}"]`);
-  while (destinationSquare.firstChild) {
-    piece = destinationSquare.firstChild
-    destinationSquare.removeChild(piece);
-    if (piece.classList == 'piece'){
-      score += parseInt(piece.dataset.value, 10)
-      updateScore()
-      if (piece.dataset.colour == 'chess.WHITE'){
-        takenSquare = document.getElementById('white-taken')
-      } else if (piece.dataset.colour == 'chess.BLACK'){
-        takenSquare = document.getElementById('black-taken')
+    if (data[castling] == 2 || data[castling] == -4) {
+      capturedDuringPremove = []
+      oldX = parseInt(data.coords.split(',')[0], 10)
+      oldY = parseInt(data.coords.split(',')[1], 10)
+      if (data[castling] == 2) {
+        for (i = 0; i < 3; i++) {
+          occupiedSquare = document.querySelector(`.chess-square[data-coordinates="${oldX + i},${oldY}"]`);
+         
+          while (occupiedSquare.firstChild) {
+            if (occupiedSquare.firstChild.dataset?.type == "chess.KING"){
+              kingSquare = occupiedSquare
+              kingPiece = occupiedSquare.firstChild
+            } else if (occupiedSquare.firstChild.classList?.contains('piece')) {
+              capturedDuringPremove.push(occupiedSquare.firstChild)
+            }
+            occupiedSquare.removeChild(occupiedSquare.firstChild);
+          }
+        }
+      } else if (data[castling] == -4) {
+        for (i = 0; i < 4; i++) {
+          occupiedSquare = document.querySelector(`.chess-square[data-coordinates="${oldX - i},${oldY}"]`);
+          while (occupiedSquare.firstChild) {
+            if (occupiedSquare.firstChild.dataset?.type == "chess.KING"){
+              kingSquare = occupiedSquare
+              kingPiece = occupiedSquare.firstChild
+            } else if (occupiedSquare.firstChild.classList?.contains('piece')) {
+              capturedDuringPremove.push(occupiedSquare.firstChild)
+            }
+            occupiedSquare.removeChild(occupiedSquare.firstChild);
+            
+
+          }
+          
+        }
       }
-      updateTakenSquare(piece)
+      kingSquare.appendChild(kingPiece)
+      castling([data[castling], data.xValue, data.yValue])
+
+    }
+    else {
+     
+    capturedDuringPremove = false
+    while (destinationSquare.firstChild) {
+      piece = destinationSquare.firstChild
+      destinationSquare.removeChild(piece);
+      if (!premove && (piece.classList == 'piece')) {
+        score += parseInt(piece.dataset.value, 10)
+        updateScore()
+        if (piece.dataset.colour == 'chess.WHITE') {
+          takenSquare = document.getElementById('white-taken')
+        } else if (piece.dataset.colour == 'chess.BLACK') {
+          takenSquare = document.getElementById('black-taken')
+        }
+        updateTakenSquare(piece)
+      }
+      else if (premove == 'premove') {
+        if (piece.classList?.contains('piece')) {
+          capturedDuringPremove = [piece]
+        }
+      }
+
     }
 
-  }
+    }
+    
+    
     destinationSquare.appendChild(lastClicked);
+    if (data[promotion]){
+      promotion([data[promotion], data.xValue, data.yValue], premove = 'premove')
+      capturedDuringPremove.push(data.piece)
+    }
+    
+    if (premove == 'premove') {
+      premoveCaptures.push(capturedDuringPremove)
+
+    }
   } else {
     console.error('Element not found:', data.coords);
-        }
+  }
+  if (premoveCapture) {
+    destinationSquare = document.querySelector(`.chess-square[data-coordinates="${premoveCapture}]`);
+
+
+    const promotedPawn = document.querySelector(`.piece[data-coordinates="${data[1]},${data[2]}"]`);
+    promotedPawn.src = `/static/images/${data[0]}.png`;
+    promotedPawn.alt = data[0];
+    promotedPawn.setAttribute('data-piece', `${data[0]}`)
+    promotedPawn.setAttribute('data-type', `chess.${parts[0].toUpperCase()}`)
+  }
 }
 // function nextTurn(){
 //   turn += 1
@@ -332,267 +481,336 @@ function start() {
     if (Element) {
       Element.addEventListener('click', createEventListener(Element));
     }
-  } 
+  }
+  document.addEventListener('keydown', function(event) {
+    if (event.key === ' ' && currentPlayer != chosen_player) {
+      clearDots()
+      for (var i = storedMoves.length - 1; i >= 0; i--) {
+        reverseActionUI(i)
+      }
+      premoveCompleted = true
+    }
+    else if (event.key == 'ArrowLeft' && currentPlayer != chosen_player && premoveCompleted == false) {
+      if (storedMoves.length > 0) {
+        reverseAction()
+      }
+    }
+  });
 
-function botMove(){
+  function botMove() {
     fetch('/bot_move', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
     })
-    .then(response => response.json())
-    .then(data => {
-      botPromote = data.pop()
-      botData = botMoveUpdate(data)
-      oneTimeListener = createEventListener([""], ...botData, botPromote, [""])
-      oneTimeListener()
-      
-    })
+      .then(response => response.json())
+      .then(data => {
+        botPromote = data.pop()
+        botData = botMoveUpdate(data)
+        oneTimeListener = createEventListener([""], ...botData, botPromote, undefined)
+        oneTimeListener()
+
+      })
   }
-  function nextTurn(){
-  turn += 1
-  console.log("turn: " + turn)
-  currentPlayer = turn % 2
-  // if (currentPlayer == 1){
-  //   premoveWhite = false
-  // }
-  // else {
-  //   premoveWhite = true
-  // }
-  console.log("current plaassyer: " + currentPlayer)
-  pausedPlayer = 1 - turn % 2
-  timer = timeList[currentPlayer]
-  clearInterval(clockPause [pausedPlayer])
-  clockPause[currentPlayer] = startTimer (timer.getAttribute('clock-value'),timer)
-  player = players[currentPlayer]
-  // console.log(storedMove)
-  console.log("bhksdbkhabj")
-  if ((storedMove != 0) && (turn %2 ==0)){
-    console.log("stored move")
-    console.log(storedMove)
-    oneTimeListener = createEventListener([""], "", "", "", "", storedMove);
+  function nextTurn() {
+    turn += 1
+    currentPlayer = turn % 2
+    if (currentPlayer != chosen_player && storedMoves.length == 0) {
+      premoveCompleted = false
+    }
+    // if (currentPlayer == 1){
+    //   premoveWhite = false
+    // }
+    // else {
+    //   premoveWhite = true
+    // }
+    pausedPlayer = 1 - turn % 2
+    timer = timeList[currentPlayer]
+    clearInterval(clockPause[pausedPlayer])
+    clockPause[currentPlayer] = startTimer(timer.getAttribute('clock-value'), timer)
+    player = players[currentPlayer]
+    if ((storedMoves.length > 0) && (turn % 2 == chosen_player)) {
+      premoveCompleted = true
+      move = storedMoves.shift()
+      oneTimeListener = createEventListener([""], "", "", "", "", move);
       oneTimeListener()
+    }
   }
-}
-  
-function buttonClick(piece, xValue, yValue){
-    Element = [piece, xValue, yValue]
+
+  function buttonClick(piece, xValue, yValue, promotionPremove) {
+    Element = [piece, xValue, yValue, promotionPremove]
     oneTimeListener = createEventListener(Element)
     document.addEventListener('click', oneTimeListener)
   }
-  if (player == "computer"){
+  if (player == "computer") {
     botMove()
   }
-document.addEventListener('click', function(event) {
-  removeButtons += 1
-  
-  var dots = chessboard.getElementsByClassName('dot');
-  Array.from(dots).forEach(function (item) {
-    item.parentNode.removeChild(item);
-});
-  var blueSquares = chessboard.querySelector(`.chess-square[style*="border: ${borderSize} solid blue;"]`)
-  if(blueSquares){
-    
-  blueSquares.style.border = "none"
-  }
-  var buttons = chessboard.querySelectorAll('button');
-  if (buttons && removeButtons == 3) {
-    removeButtons = 4
-    turn = turn + 0.1
-    updateVariable(turn)
-    buttons.forEach(function(button) {
-      button.parentNode.removeChild(button);
-    });
-}
+  function clearDots() {
+    removeButtons += 1
 
-});
+    var dots = chessboard.getElementsByClassName('dot');
+    Array.from(dots).forEach(function (item) {
+      item.parentNode.removeChild(item);
+    });
+    var blueSquares = chessboard.querySelector(`.chess-square[style*="border: ${borderSize} solid blue;"]`)
+    if (blueSquares) {
+
+      blueSquares.style.border = "none"
+    }
+    var buttons = chessboard.querySelectorAll('button');
+    if (buttons && removeButtons == 3) {
+      removeButtons = 4
+      turn = turn + 0.1
+      updateVariable(turn)
+      buttons.forEach(function (button) {
+        button.parentNode.removeChild(button);
+      });
+    }
+
+
+  }
+  document.addEventListener('click', function (event) {
+    clearDots()
+  });
   function createEventListener(Element, botX, botY, botPiece, botPromote, moveStorage) {
 
-    return function() {
-    if (typeof(Element[0]) == "string" || Element.classList?.contains('dot')) {
-      if(Element.classList?.contains('dot')){
-        var xValue = Element.dataset.x;
-        var yValue = Element.dataset.y;
-        xValue = parseInt(xValue, 10);
-        yValue = parseInt(yValue, 10);
-        Element.remove()
-        var promote = false
-        if (lastClicked.getAttribute('data-piece') === 'pawn_white' && lastClicked.getAttribute('data-coordinates').endsWith(1) || 
-        lastClicked.getAttribute('data-piece') === 'pawn_black' && lastClicked.getAttribute('data-coordinates').endsWith(6)) {
-          if (lastClicked.getAttribute('data-piece') === 'pawn_white'){
-            options = pieceList[0]
-          } else{
-            options = pieceList[1]
+    return function () {
+      if (typeof (Element[0]) == "string" || Element.classList?.contains('dot')) {
+        if (Element.classList?.contains('dot')) {
+          var xValue = Element.dataset.x;
+          var yValue = Element.dataset.y;
+          xValue = parseInt(xValue, 10);
+          yValue = parseInt(yValue, 10);
+          Element.remove()
+          var promote = false
+          if (lastClicked.getAttribute('data-piece') === 'pawn_white' && lastClicked.getAttribute('data-coordinates').endsWith(1) ||
+            lastClicked.getAttribute('data-piece') === 'pawn_black' && lastClicked.getAttribute('data-coordinates').endsWith(6)) {
+            if (lastClicked.getAttribute('data-piece') === 'pawn_white') {
+              options = pieceList[0]
+            } else {
+              options = pieceList[1]
+            }
+            turn = turn - 0.1
+            updateVariable(turn)
+            for (i in options) {
+              const button = document.createElement('button')
+              button.classList.add('button')
+              button.type = 'button'
+              yCoord = yValue + (i) * parseInt(lastClicked.dataset.value, 10)
+              var one = document.querySelector(`.chess-square[data-coordinates="${xValue},${yCoord}"]`);
+              one.appendChild(button)
+              buttonImage = document.createElement('img')
+              buttonImage.src = urlDict[options[i]]
+              buttonImage.classList.add('piece')
+              var promotionPremove = ''
+              if (Element.classList?.contains('premove')) {
+                promotionPremove = 'premove'
+              }
+              button.newPiece = options[i]
+              button.appendChild(buttonImage)
+              button.addEventListener('click', function () {
+                answer = buttonClick(button.newPiece, xValue, yValue, promotionPremove)
+              })
+            }
+            removeButtons = 1
+            return
+
           }
-          turn = turn - 0.1
-          updateVariable(turn)
-          for (i in options){
-            const button = document.createElement('button')
-            button.classList.add('button')
-            button.type = 'button'
-            yCoord = yValue + (i)*parseInt(lastClicked.dataset.value,10)
-            var one = document.querySelector(`.chess-square[data-coordinates="${xValue},${yCoord}"]`);
-            one.appendChild(button)
-            buttonImage = document.createElement('img')
-            buttonImage.src = urlDict[options[i]]
-            buttonImage.classList.add('piece')
-            button.newPiece = options[i]
-            button.appendChild(buttonImage)
-            button.addEventListener('click', function(){
-              answer = buttonClick(button.newPiece, xValue, yValue)})
-          }
-          removeButtons = 1
-          return
-        
-        } } else if (typeof(Element[0]) == "string" && botX == undefined && moveStorage == undefined) {
+        } else if (typeof (Element[0]) == "string" && botX == undefined && moveStorage == undefined) {
           document.removeEventListener('click', oneTimeListener)
           promote = Element[0]
           xValue = Element[1]
           yValue = Element[2]
-    }else if (typeof(Element[0]) == "string" && moveStorage == undefined){
-      promote = false
-      xValue = botX
-      yValue = botY
-      lastClicked = botPiece
-      coords = lastClicked.getAttribute('data-coordinates')
-      
-        
-      if (botPromote){
-        lastLetter = botPromote[botPromote.length - 1];
-        if (lastClicked.getAttribute('data-piece') === 'pawn_white'){
-          options = pieceList[0]
-        } else{
-          options = pieceList[1]
         }
-        if (lastLetter == "q"){
-          promote = options[0]
-        } else if (lastLetter == "n"){
-          promote = options[1]
-        } else if (lastLetter == "r"){
-          promote = options[2]
-        } else if (lastLetter == "b"){
-          promote = options[3]
+        else if (typeof (Element[0]) == "string" && moveStorage == undefined) {
+          promote = false
+          xValue = botX
+          yValue = botY
+          lastClicked = botPiece
+          coords = lastClicked.getAttribute('data-coordinates')
+
+
+          if (botPromote) {
+            lastLetter = botPromote[botPromote.length - 1];
+            if (lastClicked.getAttribute('data-piece') === 'pawn_white') {
+              options = pieceList[0]
+            } else {
+              options = pieceList[1]
+            }
+            if (lastLetter == "q") {
+              promote = options[0]
+            } else if (lastLetter == "n") {
+              promote = options[1]
+            } else if (lastLetter == "r") {
+              promote = options[2]
+            } else if (lastLetter == "b") {
+              promote = options[3]
+            }
+          }
         }
-      }
-    }
-    console.log(moveStorage)
-    if (moveStorage != undefined){
-      move = 'true'
-      xValue = moveStorage.xValue
-      yValue = moveStorage.yValue
-      console.log("stored move")
-    } else {
-      move = {
-        oldCoordinates : lastClicked.getAttribute('data-coordinates'),
-        newCoordinates: [xValue,yValue],
-        promote:promote
-      };
-    }
-      moveData = {
-        xValue:xValue, yValue:yValue, move:move}
-        
-      if ((!Element.classList?.contains('premove'))) {
-        console.log(Element)
-       
-        fetch('/move_piece', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        
-        body: JSON.stringify(move)
-        })
-        .then(response =>{
-          if(!response.ok){
-            console.log("error")
-          }
-          return(response.json())
-        }) 
-        .then(data => {
-          if (data[0] == 1 || data[0] == -1){
-            yValue += data[0]
-            // updateVariable([xValue,yValue])
-            enPassant([xValue,yValue])
-          } else if (data[0] == 2 || data[0] == -4){
-            castling([data[0],xValue,yValue])
-          } else if (pieceList[0].includes(data[0]) || pieceList[1].includes(data[0])){
-            promotion([data[0], xValue, yValue])
-          }
-          if (data[data.length-1] =='check' || data[data.length-1] == 'checkmate'){
-            if (turn %2 == 0){
-              var king = ["king_white", "king_black"]
-            } else {
-              var king = ["king_black", "king_white"]
-            }
-            if (data[data.length-1] =='check'){
-              updateVariable(king)
-              kingCheck(king)
-            } else {
-            checkmate(king)
-            }
-          } else if (data[data.length-1] =='stalemate') {
-            stalemate(king)
-          } else if (data[data.length-1] =='repetition') {
-            repetition(king)
-          }
-          if (player == "computer"){
-            botMove()
-          }
-          
-        })
-        
-        movePiece(moveData)
-        nextTurn()
-      }
-      else{
-        console.log("premove")
-        fetch('/store_move', {
+        if (moveStorage != undefined) {
+          move = 'true'
+          coords = moveStorage.coords
+          promote = moveStorage.move?.promote
+          xValue = moveStorage.xValue
+          yValue = moveStorage.yValue
+        } else {
+          move = {
+            oldCoordinates: lastClicked.getAttribute('data-coordinates'),
+            newCoordinates: [xValue, yValue],
+            promote: promote
+          };
+        }
+        moveData = {
+          xValue: xValue, yValue: yValue, coords: coords, move: move, piece: lastClicked.getAttribute('data-piece')
+        }
+        if ((!Element.classList?.contains('premove') && turn % 1 == 0 && Element[3] != 'premove')) {
+          fetch('/move_piece', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+
+            body: JSON.stringify(move)
+          })
+            .then(response => {
+              if (!response.ok) {
+                console.log("error")
+              }
+
+              return (response.json())
+            })
+            .then(data => {
+              if (data.error === "Illegal move") {
+                console.log(data.error);
+                storedMoves = []
+              }
+              else {
+
+                movePiece(moveData)
+                nextTurn()
+                if (data[0] == 1 || data[0] == -1) {
+                  yValue += data[0]
+                  // updateVariable([xValue,yValue])
+                  enPassant([xValue, yValue])
+                } else if (data[0] == 2 || data[0] == -4) {
+                  castling([data[0], xValue, yValue])
+                } else if (pieceList[0].includes(data[0]) || pieceList[1].includes(data[0]) || pieceList[0].includes(promote) || pieceList[1].includes(promote)) {
+                  promotion([data[0], xValue, yValue])
+                }
+                if (data[data.length - 1] == 'check' || data[data.length - 1] == 'checkmate') {
+                  if (turn % 2 == 0) {
+                    var king = ["king_white", "king_black"]
+                  } else {
+                    var king = ["king_black", "king_white"]
+                  }
+                  if (data[data.length - 1] == 'check') {
+                    updateVariable(king)
+                    kingCheck(king)
+                  } else {
+                    checkmate(king)
+                  }
+                } else if (data[data.length - 1] == 'stalemate') {
+                  stalemate(king)
+                } else if (data[data.length - 1] == 'repetition') {
+                  repetition(king)
+                  moveData = 0
+                }
+                if (player == "computer") {
+                  botMove()
+                }
+              }
+
+            })
+
+
+        }
+        else {
+          fetch('/store_move', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
             body: JSON.stringify(moveData)
           })
-          .then(response =>{
-          if(!response.ok){
-            console.log("error")
-          }
-          return(response.json())
-        }) 
-        .then(data => {
-          storedMove = data
-          console.log("gavjgdvsj")
-          console.log(storedMove)
-        })
-      }
-        
-    } else if (Element.classList?.contains('piece')) {
+            .then(response => {
+              if (!response.ok) {
+                console.log("error")
+              }
+              return (response.json())
+            })
+            .then(data => {
+              storedMoves.push(data)
+              console.log(data)
+              console.log(moveData)
+              moveData[castling] = data.castling
+              moveData[promotion] = data.promotion
+              movePiece(moveData, premove = 'premove')
+            })
+        }
+
+      } 
+       else if ( chosen_player == 0 && turn % 1 == 0 && (
+        Element.dataset.colour == 'chess.WHITE' && currentPlayer == 0 && storedMoves.length == 0 || 
+        Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1 && premoveCompleted == false || 
+        Element.dataset.colour == 'chess.BLACK' && currentPlayer == 1 && premoveCompleted == true)
+        || chosen_player == 1 && turn % 1 == 0 && (
+          Element.dataset.colour == 'chess.BLACK' && currentPlayer == 1 && storedMoves.length == 0 || 
+          Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 && premoveCompleted == false && turn > 0 || 
+          Element.dataset.colour == 'chess.WHITE' && currentPlayer == 0 && premoveCompleted == true ||
+          Element.dataset.colour == 'chess.WHITE' && turn == 0)
+      ) {
         lastClicked = Element
-          const jsonData = {
-            coords: Element.getAttribute('data-coordinates')
-          };
-          coords = jsonData.coords
-          fetch('/move_generator', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(jsonData),
-          })
+        console.log(currentPlayer)
+        console.log(chosen_player)
+        if (chosen_player == 0 && currentPlayer == 1 && 
+          document.querySelector('.piece[data-coordinates="4,7"][data-piece="king_white"]')) {
+          kingsideRook = document.querySelector('.piece[data-coordinates="7,7"][data-piece="rook_white"]') !== null;
+          queensideRook = document.querySelector(`.piece[data-coordinates="0,7"][data-piece="rook_white"]`) !== null;
+        } else if (chosen_player == 1 && currentPlayer == 0 &&
+          document.querySelector('.piece[data-coordinates="4,0"][data-piece="king_black"]') !== null) {
+          kingsideRook = document.querySelector(`.piece[data-coordinates="7,0"][data-piece="rook_black"]`) !== null;
+          queensideRook = document.querySelector(`.piece[data-coordinates="0,0"][data-piece="rook_black"]`) !== null;
+        } else {
+          kingsideRook = false;
+          queensideRook = false;
+        }
+        const jsonData = {
+          coords: Element.getAttribute('data-coordinates'),
+          piece: Element.getAttribute('data-piece'),
+          color: Element.getAttribute('data-colour'),
+          kingsideRook: kingsideRook,
+          queensideRook: queensideRook
+        };
+        console.log(jsonData)
+        coords = jsonData.coords
+        fetch('/move_generator', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(jsonData),
+        })
           .then(response => response.json())
           .then(data => {
             lastClicked.parentNode.style.border = `${borderSize} solid blue`
             var premove = 'none'
-            if (Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 || Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1){
+            var colour = 'none'
+            if (chosen_player == 0 && (
+              Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 || Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1) ||
+              chosen_player == 1 && (
+                Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1 || Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0)) {
               premove = "premove"
+              colour = 'blue'
             }
-            data.forEach(function(item){
-              
+            data.forEach(function (item) {
+
               [x, y] = item.split(',').map(coord => parseInt(coord, 10));
               var dotElement = document.createElement('span');
-              dotElement.classList.add('dot'); 
+              dotElement.classList.add('dot');
               dotElement.classList.add(premove);
+              dotElement.style.backgroundColor = colour;
               dotElement.dataset.x = x;
               dotElement.dataset.y = y;
               const dotSquare = document.querySelector(`.chess-square[data-coordinates="${x},${y}"]`);
@@ -600,11 +818,12 @@ document.addEventListener('click', function(event) {
               dotElement.addEventListener('click', createEventListener(dotElement));
             });
           })
-        .catch(error => {
-          console.error('Error:', error);
-        });
-      
-    }};
+          .catch(error => {
+            console.error('Error:', error);
+          });
+
+      }
+    };
   }
 };
 start()

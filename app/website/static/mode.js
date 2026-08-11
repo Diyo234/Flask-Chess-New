@@ -126,6 +126,7 @@ function botLevel(level){
 let choice
 let players
 let player_colour
+let chosen_player
 function startGame(data, colour){
     
     if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){
@@ -168,8 +169,11 @@ function startGame(data, colour){
     player_colour = colour
     if (colour == "white"){
         players = ["player",data]
-    } else if (colour == "black" && choice != "player"){
+        chosen_player = 0
+    // } else if (colour == "black" && choice != "player"){
+    }else if (colour == "black" ){
         players = [data,"player"]
+        chosen_player = 1  
         reverse("row1")
         reverse("row2")
         reverse("clock-column")
@@ -252,3 +256,7 @@ function matchmaking(){
     
 
 }
+
+// Starts automatically
+startGame("player", "white")
+startGame("player", "black")

@@ -15,14 +15,14 @@ function repetition(){
     console.log("repetition")
     repetitionAction()
 }
-function movePiece(data){
-        moveAction(data)
+function movePiece(data, premove = false, premoveCapture = false){
+        moveAction(data, premove, premoveCapture)
 }
 function castling(data){
     castlingAction(data)
 }
-function promotion(data){
-    promotionAction(data)
+function promotion(data, premove = false){
+    promotionAction(data, premove)
 }
 
 function updateVariable(data){

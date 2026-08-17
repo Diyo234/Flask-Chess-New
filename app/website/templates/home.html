@@ -21,8 +21,7 @@
 <div class = "column" id = "mobile-screen" style="display: flex; flex-direction: column; margin:auto; justify-content: center; align-items: center;">
 <div class = "row change" style="display: flex; border-top: 4px solid black; border-bottom: 4px solid black;">
   <div class = "mobile-icon black-cell" name = "mobile" style="display:none; margin-left: auto;">
-    <div class = "name" style="font-size: 1.5vh;"> Player2</div>
-    <div class = "name" style="font-size: 1.5vh;"> 900</div></div>
+    </div>
   
 
     <div class = "pieces-square black-cell" id="white-taken" style="display: none; border: 4px solid black; border-top: none; border-bottom: none;">
@@ -33,25 +32,21 @@
 <div class = "big-square">
   <div class = "flex-container column" id = players-container style = display:none;>
     <div class = "flex-container row">
-      <div class = "clock-square black-cell">
-        <div class = row>
-          <div class = "icon-square white-cell"></div>
-          <div class = "name"> 900</div>
-        </div>
-        <div class = "name"> Player1</div>
+      
+    </div>
+   <div class = column id = clock-column>
+      <div class = "row">
+        <div class = "clock-square black-cell" id = "black-time" name = "desktop" style="display: none;" clock-value = 600>10:00</div>
+      </div>
+      <div class = "row">
+        <div class = "empty-square"></div>
+      </div>
+      <div class = "row">
+        <div class = "clock-square white-cell" id = "white-time" name = "desktop" style="display: none;" clock-value = 600>10:00</div>
       </div>
     </div>
     <div class = "flex-container row">
-      <div class = "empty-square"></div>
-    </div>
-    <div class = "flex-container row">
-      <div class = "clock-square white-cell">
-        <div class = row>
-          <div class = "icon-square black-cell"></div>
-          <div class = "name"> 900</div>
-        </div>
-        <div class = "name"> Player2</div>
-      </div>
+      
     </div>
   </div>
   <div class = "column">
@@ -71,11 +66,13 @@
         </div>
         {% endfor %}
         </div>
+              {% set letters = 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' %}
+              {% set numbers = 8, 7, 6, 5, 4, 3, 2, 1 %}
               {% for n in range(8) %}
                   <div class="row">
                       {% for x in range(8) %}
                           {% set cellClass = 'white-cell' if (n + x) % 2 == 0 else 'black-cell' %}
-                          <div class="chess-square {{ cellClass }}" data-coordinates="{{ x }},{{ n }}">
+                          <div class="chess-square {{ cellClass }}" data-coordinates="{{ x }},{{ n }}" id = "{{ letters[x] }}{{ numbers[n] }}">
                           {% if (n == 6 ) %}
                             <img class= "piece"  src="{{ url_for('static', filename='images/pawn_white.png') }}" alt="pawn_white" data-piece="pawn_white" data-coordinates = "{{ x }},{{ n }}" data-type = "chess.PAWN" data-colour = "chess.WHITE" data-value = "1"/>
                           {% elif (n == 1 ) %}
@@ -127,7 +124,7 @@
   </div>
   
   <div class = "flex-container column">
-    <div class = "game-square">
+    <div class = "game-square" id = "game-square">
       <div class = row>
         <button type="button" onclick = online() class="btn btn-primary btn-lg" category ="first">Play Online</button>
         <button type="button" onclick = matchmaking() class="btn btn-primary btn-lg" category = "online-mode" style = "display:none;">Search For Match</button>
@@ -148,23 +145,23 @@
         <button type="button" onclick = 'startGame("computer")' class="btn btn-primary btn-lg" category = "random" style = "display:none;">Random</button>
       </div>
     </div>
-  </div>
-    <div class = column id = clock-column>
-      <div class = "row">
-        <div class = "clock-square black-cell" id = "black-time" name = "desktop" style="display: none;" clock-value = 600>10:00</div>
+    <div class="moves-panel" id="moves-panel">
+      <div class="move-column" id="move-column-white">
+        <!-- <div class="move-entry">
+          e2e4
+        </div> -->
       </div>
-      <div class = "row">
-        <div class = "empty-square"></div>
+      <div class="move-column" id="move-column-black">
+       
       </div>
-      <div class = "row">
-        <div class = "clock-square white-cell" id = "white-time" name = "desktop" style="display: none;" clock-value = 600>10:00</div>
-      </div>
+
     </div>
+  </div>
+    
 </div>
 <div class = "row change" style="display: flex; border-bottom: 4px solid black; border-top: 4px solid black;">
   <div class = "mobile-icon white-cell" name = "mobile" style="display:none; margin-right: auto; margin-left: auto; margin-top: 0;">
-    <div class = "name" style="font-size: 1.5vh;"> Player1</div>
-    <div class = "name" style="font-size: 1.5vh;"> 900</div></div>
+    </div>
   
 <div class = "pieces-square white-cell" id="black-taken" style="display: none; margin-top: 0; border-right: 4px solid black; border-left: 4px solid black;">
   <div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div><div class="container"></div>

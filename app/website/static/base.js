@@ -14,6 +14,8 @@ var storedMoves = []
 var premoveCaptures = []
 var moveCompleted = false
 var premoveCompleted = false
+var viewingMoveHistory = false
+var alternateLine = false
 var player = players[0]
 var removeButtons = 4
 var oneTimeListener = 0
@@ -22,6 +24,11 @@ var pieceList = [
   ['queen_white', 'knight_white', 'rook_white', 'bishop_white'],
   ['queen_black', 'knight_black', 'rook_black', 'bishop_black']
 ]
+var pieceDict = {
+  'Q': ['queen_white', '9'], 'N': ['knight_white', '3'], 'R': ['rook_white', '5'], 'B': ['bishop_white', '3'],
+  'q': ['queen_black', '-9'], 'n': ['knight_black', '-3'], 'r': ['rook_black', '-5'], 'b': ['bishop_black', '-3'],
+  'K': ['king_white', '0'], 'k': ['king_black', '0'], 'P': ['pawn_white', '1'], 'p': ['pawn_black', '-1']
+};
 if (choice == 'online' || choice == 'opponent') {
   url = urlForOnline
 } else if (choice == 'player' || choice == 'computer') {
@@ -87,12 +94,14 @@ else {
 }
 function moveAction(data, premove = false, premoveCapture = false) {
   if (turn > 0 && !premove) {
-    previousLoc.style.border = "none"
-    newLoc.style.border = "none"
+    blackSquares = document.querySelectorAll('.moved-black-border')
+    blackSquares.forEach(square => {
+      square.classList.remove('moved-black-border')
+    })
   }
-  var redSquare = chessboard.querySelectorAll(`.chess-square[style*="border: ${borderSize} solid red;"]`);
-  if (redSquare[0] && !premove) {
-    redSquare[0].style.border = "none"
+  var redSquare = chessboard.getElementsByClassName('check-red-border')[0];
+  if (redSquare && !premove) {
+    redSquare.classList.remove('check-red-border');
   }
   updateUI(data, premove, premoveCapture = false);
   // nextTurn()
@@ -109,29 +118,32 @@ function moveAction(data, premove = false, premoveCapture = false) {
     kingBlackSquare = false
     kings = document.querySelectorAll(`.piece[data-type="chess.KING"]`)
     kings.forEach(element => {
-      if (element.parentNode.style.border == `${borderSize} solid black`) {
-        element.parentNode.style.border = "none"
+      if (element.parentNode.classList.contains('moved-black-border')) {
+        element.parentNode.classList.remove('moved-black-border')
       }
     });
   }
   if (!premove) {
-  newLoc.style.border = `${borderSize} solid black`
-  previousLoc.style.border = `${borderSize} solid black`
-}
+    newLoc.classList.add('moved-black-border')
+    previousLoc.classList.add('moved-black-border')
+  }
 
 }
 
 function castlingAction(data) {
   data[1] += data[0] / 2
-  const rook = document.querySelectorAll(`.piece[data-coordinates="${data[1]},${data[2]}"][data-type="chess.ROOK"]`);
-  
+  console.log(data[1])
+  const rook = document.querySelector(`.piece[data-coordinates="${data[1]},${data[2]}"][data-type="chess.ROOK"]`);
+  console.log(rook)
+  console.log(data)
+
   data[1] -= data[0];
   if (data[0] == -4) {
     data[1] -= 1
   }
-  rook[0].setAttribute('data-coordinates', `${data[1]},${data[2]}`);
+  rook.setAttribute('data-coordinates', `${data[1]},${data[2]}`);
   var rookSquare = document.querySelector(`.chess-square[data-coordinates="${data[1]},${data[2]}"]`);
-  rookSquare.appendChild(rook[0]);
+  rookSquare.appendChild(rook);
 }
 function promotionAction(data, premove = false) {
   const parts = data[0].split('_')
@@ -139,8 +151,8 @@ function promotionAction(data, premove = false) {
   promotedPawn.src = `/static/images/${data[0]}.png`;
   promotedPawn.setAttribute('data-piece', `${data[0]}`)
   promotedPawn.setAttribute('data-type', `chess.${parts[0].toUpperCase()}`)
-  if (!premove) {
-    
+  if (!premove && viewingMoveHistory == false) {
+
     promotedPawn.alt = data.enPassant;
     if (parts[0] == 'queen') {
       newValue = 9
@@ -150,29 +162,35 @@ function promotionAction(data, premove = false) {
       newValue = 3
     }
     promotedPawn.setAttribute('data-value', newValue * parseInt(promotedPawn.dataset.value, 10))
+    
     score -= parseInt(promotedPawn.dataset.value, 10)
     updateScore()
+    
   }
 }
 function checkmateAction(data) {
   losingKing = document.querySelector(`.piece[alt="${data[0]}"]`)
-  losingKing.parentNode.style.backgroundColor = "red"
+  losingKing.parentNode.classList.add('losing-king')
   winningKing = document.querySelector(`.piece[alt="${data[1]}"]`)
-  winningKing.parentNode.style.backgroundColor = "green"
-  turn += 0.2
+  winningKing.parentNode.classList.add('winning-king')
+  if (!viewingMoveHistory) {
+    turn += 0.2
+  }
 }
 function stalemateAction(data) {
   whiteKing = document.querySelector(`.piece[alt="king_white"]`)
   blackKing = document.querySelector(`.piece[alt="king_black"]`)
-  whiteKing.parentNode.style.backgroundColor = "yellow"
-  blackKing.parentNode.style.backgroundColor = "yellow"
-  turn += 0.2
+  whiteKing.parentNode.classList.add('drawing-king')
+  blackKing.parentNode.classList.add('drawing-king')
+  if (!viewingMoveHistory) {
+    turn += 0.2
+  }
 }
 function repetitionAction(data) {
   whiteKing = document.querySelector(`.piece[alt="king_white"]`)
   blackKing = document.querySelector(`.piece[alt="king_black"]`)
-  whiteKing.parentNode.style.backgroundColor = "yellow"
-  blackKing.parentNode.style.backgroundColor = "yellow"
+  whiteKing.parentNode.classList.add('drawing-king')
+  blackKing.parentNode.classList.add('drawing-king')
   turn += 0.2
 }
 
@@ -181,74 +199,76 @@ function reverseActionUI(index = false) {
     moveStorage = storedMoves[index]
   } else {
 
-  moveStorage = storedMoves.pop()
+    moveStorage = storedMoves.pop()
   }
-  
-              oldCoordinates = moveStorage.move.oldCoordinates
-              moveStorageReversed = Object.assign({}, moveStorage);
-              moveStorageReversed.coords = `${moveStorage.xValue},${moveStorage.yValue}`
-              premoveCapture = premoveCaptures.pop(0)
-              console.log(premoveCaptures)
-              console.log(premoveCaptures.length);
-              if (premoveCapture) {
-                if (moveStorage.castling == 2) {
-                  rookSquare = document.querySelector(`.chess-square[data-coordinates="${moveStorage.xValue + 1},${moveStorage.yValue}"]`);
-                  rookPiece = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue - 1},${moveStorage.yValue}"][data-type="chess.ROOK"]`);
-                  rookPiece.setAttribute('data-coordinates', `${moveStorage.xValue + 1},${moveStorage.yValue}`)
-                  rookSquare.appendChild(rookPiece)
-                } else if (moveStorage.castling == -4) {
-                  rookSquare = document.querySelector(`.chess-square[data-coordinates="${moveStorage.xValue - 2},${moveStorage.yValue}"]`);
-                  rookPiece = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue + 1},${moveStorage.yValue}"][data-type="chess.ROOK"]`);
-                  rookPiece.setAttribute('data-coordinates', `${moveStorage.xValue - 2},${moveStorage.yValue}`)
-                  rookSquare.appendChild(rookPiece)
-                }
-                for (i = 0; i < premoveCapture.length; i++) {
-                  premoveCapturePiece = premoveCapture[i]
-                  if (premoveCapturePiece == 'pawn_white' || premoveCapturePiece == 'pawn_black') {
-                    console.log("pawn promotion")
-                    const promotedPawn = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue},${moveStorage.yValue}"]`);
-                    promotedPawn.src = `/static/images/${premoveCapturePiece}.png`;
-                    promotedPawn.setAttribute('data-piece', `${premoveCapturePiece}`)
-                    promotedPawn.setAttribute('data-type', 'chess.PAWN')
 
-                  } else {
-                    
-                  destinationSquare = document.querySelector(`.chess-square[data-coordinates="${premoveCapturePiece.dataset.coordinates}"]`);
-                  destinationSquare.appendChild(premoveCapturePiece)
-                  }
-                }
-              }
-              const [x, y] = oldCoordinates.split(',').map(coord => parseInt(coord, 10));
-              moveStorageReversed.xValue = x
-              moveStorageReversed.yValue = y
-              movePiece(moveStorageReversed, premove = 'reversed', premoveCapture)
-}
-function reverseAction(){
-         fetch('/pop_premove', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            }
-          })
-            .then(response => {
-              if (!response.ok) {
-                console.log("error")
-              }
-              return (response.json())
-            })
-            .then(data => {
-              reverseActionUI()
-              
+  oldCoordinates = moveStorage.move.oldCoordinates
+  moveStorageReversed = Object.assign({}, moveStorage);
+  moveStorageReversed.coords = `${moveStorage.xValue},${moveStorage.yValue}`
+  premoveCapture = premoveCaptures.pop(0)
+  console.log(premoveCaptures)
+  console.log(premoveCaptures.length);
+  if (premoveCapture) {
+    if (moveStorage.castling == 2) {
+      rookSquare = document.querySelector(`.chess-square[data-coordinates="${moveStorage.xValue + 1},${moveStorage.yValue}"]`);
+      rookPiece = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue - 1},${moveStorage.yValue}"][data-type="chess.ROOK"]`);
+      rookPiece.setAttribute('data-coordinates', `${moveStorage.xValue + 1},${moveStorage.yValue}`)
+      rookSquare.appendChild(rookPiece)
+    } else if (moveStorage.castling == -4) {
+      rookSquare = document.querySelector(`.chess-square[data-coordinates="${moveStorage.xValue - 2},${moveStorage.yValue}"]`);
+      rookPiece = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue + 1},${moveStorage.yValue}"][data-type="chess.ROOK"]`);
+      rookPiece.setAttribute('data-coordinates', `${moveStorage.xValue - 2},${moveStorage.yValue}`)
+      rookSquare.appendChild(rookPiece)
+    }
+    for (i = 0; i < premoveCapture.length; i++) {
+      premoveCapturePiece = premoveCapture[i]
+      if (premoveCapturePiece == 'pawn_white' || premoveCapturePiece == 'pawn_black') {
+        console.log("pawn promotion")
+        const promotedPawn = document.querySelector(`.piece[data-coordinates="${moveStorage.xValue},${moveStorage.yValue}"]`);
+        promotedPawn.src = `/static/images/${premoveCapturePiece}.png`;
+        promotedPawn.setAttribute('data-piece', `${premoveCapturePiece}`)
+        promotedPawn.setAttribute('data-type', 'chess.PAWN')
 
-              
-            })
-        
-      
+      } else {
+
+        destinationSquare = document.querySelector(`.chess-square[data-coordinates="${premoveCapturePiece.dataset.coordinates}"]`);
+        destinationSquare.appendChild(premoveCapturePiece)
+      }
+    }
+  }
+  const [x, y] = oldCoordinates.split(',').map(coord => parseInt(coord, 10));
+  moveStorageReversed.xValue = x
+  moveStorageReversed.yValue = y
+  movePiece(moveStorageReversed, premove = 'reversed', premoveCapture)
 }
+function reverseAction() {
+  fetch('/pop_premove', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    }
+  })
+    .then(response => {
+      if (!response.ok) {
+        console.log("error")
+      }
+      return (response.json())
+    })
+    .then(data => {
+      reverseActionUI()
+
+
+
+    })
+
+
+}
+
+
 //////
 function kingAction(data) {
   king = document.querySelector(`.piece[alt="${data[0]}"]`)
-  king.parentNode.style.border = `${borderSize} solid red`
+  king.parentNode.classList.add('check-red-border')
 }
 function updateTakenSquare(piece) {
   let isPresent = Array.from(takenSquare.children).some(existingPiece => existingPiece.firstChild?.src === piece.src);
@@ -323,7 +343,7 @@ function enPassantAction(data) {
   while (deletionSquare.firstChild) {
     piece = deletionSquare.firstChild
     deletionSquare.removeChild(piece);
-    if (piece.classList == 'piece') {
+    if (piece.classList == 'piece' && viewingMoveHistory == false) {
       score += parseInt(piece.dataset.value, 10)
       updateScore()
       if (piece.dataset.colour == 'chess.WHITE') {
@@ -359,7 +379,7 @@ function updateUI(data, premove = false, premoveCapture = false) {
   lastClicked = document.querySelector(`.piece[data-coordinates="${data.coords}"]`);
   if (!lastClicked) {
     lastClicked = document.querySelector(`.piece[data-coordinates="${data.xValue},${data.yValue}"]`);
-    
+
   }
   if (lastClicked) {
     lastClicked.setAttribute('data-coordinates', `${data.xValue},${data.yValue}`)
@@ -371,9 +391,9 @@ function updateUI(data, premove = false, premoveCapture = false) {
       if (data[castling] == 2) {
         for (i = 0; i < 3; i++) {
           occupiedSquare = document.querySelector(`.chess-square[data-coordinates="${oldX + i},${oldY}"]`);
-         
+
           while (occupiedSquare.firstChild) {
-            if (occupiedSquare.firstChild.dataset?.type == "chess.KING"){
+            if (occupiedSquare.firstChild.dataset?.type == "chess.KING") {
               kingSquare = occupiedSquare
               kingPiece = occupiedSquare.firstChild
             } else if (occupiedSquare.firstChild.classList?.contains('piece')) {
@@ -386,17 +406,17 @@ function updateUI(data, premove = false, premoveCapture = false) {
         for (i = 0; i < 4; i++) {
           occupiedSquare = document.querySelector(`.chess-square[data-coordinates="${oldX - i},${oldY}"]`);
           while (occupiedSquare.firstChild) {
-            if (occupiedSquare.firstChild.dataset?.type == "chess.KING"){
+            if (occupiedSquare.firstChild.dataset?.type == "chess.KING") {
               kingSquare = occupiedSquare
               kingPiece = occupiedSquare.firstChild
             } else if (occupiedSquare.firstChild.classList?.contains('piece')) {
               capturedDuringPremove.push(occupiedSquare.firstChild)
             }
             occupiedSquare.removeChild(occupiedSquare.firstChild);
-            
+
 
           }
-          
+
         }
       }
       kingSquare.appendChild(kingPiece)
@@ -404,38 +424,38 @@ function updateUI(data, premove = false, premoveCapture = false) {
 
     }
     else {
-     
-    capturedDuringPremove = false
-    while (destinationSquare.firstChild) {
-      piece = destinationSquare.firstChild
-      destinationSquare.removeChild(piece);
-      if (!premove && (piece.classList == 'piece')) {
-        score += parseInt(piece.dataset.value, 10)
-        updateScore()
-        if (piece.dataset.colour == 'chess.WHITE') {
-          takenSquare = document.getElementById('white-taken')
-        } else if (piece.dataset.colour == 'chess.BLACK') {
-          takenSquare = document.getElementById('black-taken')
+
+      capturedDuringPremove = false
+      while (destinationSquare.firstChild) {
+        piece = destinationSquare.firstChild
+        destinationSquare.removeChild(piece);
+        if (!premove && (piece.classList == 'piece' && viewingMoveHistory == false)) {
+          score += parseInt(piece.dataset.value, 10)
+          updateScore()
+          if (piece.dataset.colour == 'chess.WHITE') {
+            takenSquare = document.getElementById('white-taken')
+          } else if (piece.dataset.colour == 'chess.BLACK') {
+            takenSquare = document.getElementById('black-taken')
+          }
+          updateTakenSquare(piece)
         }
-        updateTakenSquare(piece)
-      }
-      else if (premove == 'premove') {
-        if (piece.classList?.contains('piece')) {
-          capturedDuringPremove = [piece]
+        else if (premove == 'premove') {
+          if (piece.classList?.contains('piece')) {
+            capturedDuringPremove = [piece]
+          }
         }
+
       }
 
     }
 
-    }
-    
-    
+
     destinationSquare.appendChild(lastClicked);
-    if (data[promotion]){
+    if (data[promotion]) {
       promotion([data[promotion], data.xValue, data.yValue], premove = 'premove')
       capturedDuringPremove.push(data.piece)
     }
-    
+
     if (premove == 'premove') {
       premoveCaptures.push(capturedDuringPremove)
 
@@ -482,21 +502,238 @@ function start() {
       Element.addEventListener('click', createEventListener(Element));
     }
   }
-  document.addEventListener('keydown', function(event) {
-    if (event.key === ' ' && currentPlayer != chosen_player) {
+  document.addEventListener('keydown', function (event) {
+    if (event.key === ' ' && currentPlayer != chosen_player && premoveCompleted == false) {
       clearDots()
       for (var i = storedMoves.length - 1; i >= 0; i--) {
         reverseActionUI(i)
       }
       premoveCompleted = true
     }
-    else if (event.key == 'ArrowLeft' && currentPlayer != chosen_player && premoveCompleted == false) {
+    else if (event.key == 'Backspace' && currentPlayer != chosen_player && premoveCompleted == false) {
       if (storedMoves.length > 0) {
         reverseAction()
       }
     }
+    else if (event.key == 'ArrowLeft') {
+      fetch('/undo_forked_move', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            console.log("error")
+          }
+          return (response.json())
+        })
+        .then(data => {
+          console.log(data)
+          if (!data.forked) {
+            console.log('not forked')
+            currentEntrySelected = document.querySelector('.move-entry.move-entry-selected');
+            if (currentEntrySelected) {
+              currentTurn = parseInt(currentEntrySelected.dataset.turn, 10)
+              if (currentTurn > 0) {
+                previousEntry = document.querySelector(`.move-entry[data-turn="${currentTurn - 1}"]`);
+                if (previousEntry) {
+                  moveHistory(previousEntry);
+                }
+              }
+              else {
+                moveHistory();
+              }
+            }
+          }
+          else {
+            console.log('forked')
+
+            chessboardStr = data.chessboard
+            chessboardMove = data.move
+            gameStatus = data.game_status
+            historyTurn = data.turn
+            clearBoard()
+            resetBoard(chessboardStr, chessboardMove, gameStatus, historyTurn)
+          }
+
+        })
+
+
+
+    }
+    else if (event.key == 'ArrowRight' && viewingMoveHistory == true) {
+      currentEntrySelected = document.querySelector('.move-entry.move-entry-selected');
+      if (currentEntrySelected) {
+        moveEntryTurn = parseInt(currentEntrySelected.dataset.turn, 10)
+        nextEntry = document.querySelector(`.move-entry[data-turn="${moveEntryTurn + 1}"]`);
+      }
+      else {
+        nextEntry = document.querySelector(`.move-entry[data-turn="0"]`);
+      }
+
+      if (nextEntry) {
+        fetch('/view_next_move', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            moveEntryTurn: moveEntryTurn + 1
+          })
+        })
+          .then(response => {
+            if (!response.ok) {
+              console.log("error")
+            }
+            return response.json()
+          })
+          .then(data => {
+            console.log(data)
+            chessboardStr = data.chessboard
+            chessboardMove = data.move
+            gameStatus = data.game_status
+            historyTurn = data.turn
+            clearBoard()
+            resetBoard(chessboardStr, chessboardMove, gameStatus, historyTurn)
+            currentEntrySelected = document.querySelector('.move-entry.move-entry-selected');
+            if (currentEntrySelected) {
+              currentEntrySelected.classList.remove('move-entry-selected');
+            }
+            nextEntry.classList.add('move-entry-selected');
+            if (nextEntry.dataset.turn == turn - 1) {
+              viewingMoveHistory = false
+            }
+          })
+      }
+    }
+
   });
 
+  function clearBoard() {
+    var squares = chessboard.getElementsByClassName('chess-square');
+    for (var i = 0; i < squares.length; i++) {
+      var square = squares[i];
+      while (square.firstChild) {
+        square.removeChild(square.firstChild);
+      }
+      if (square.classList.contains('moved-black-border')) {
+        square.classList.remove('moved-black-border');
+      }
+      if (square.classList.contains('check-red-border')) {
+        square.classList.remove('check-red-border');
+      }
+      if (square.classList.contains('losing-king')) {
+        square.classList.remove('losing-king');
+      }
+      if (square.classList.contains('winning-king')) {
+        square.classList.remove('winning-king');
+      }
+      if (square.classList.contains('drawing-king')) {
+        square.classList.remove('drawing-king');
+      }
+    }
+  }
+  function replacePiece(piece, x, y) {
+    pieceName = pieceDict[piece][0]
+    pieceValue = pieceDict[piece][1]
+    const square = document.querySelector(`.chess-square[data-coordinates="${x},${y}"]`);
+    const newPiece = document.createElement('img');
+
+    newPiece.src = `/static/images/${pieceName}.png`;
+    newPiece.alt = pieceName;
+    newPiece.classList.add('piece');
+    newPiece.setAttribute('data-coordinates', `${x},${y}`);
+    newPiece.setAttribute('data-piece', pieceName);
+    newPiece.setAttribute('data-type', `chess.${pieceName.split('_')[0].toUpperCase()}`);
+    newPiece.setAttribute('data-colour', `chess.${pieceName.split('_')[1].toUpperCase() === 'WHITE' ? 'WHITE' : 'BLACK'}`);
+    newPiece.setAttribute('data-value', pieceValue);
+    newPiece.addEventListener('click', createEventListener(newPiece));
+    square.appendChild(newPiece);
+  }
+
+  function resetBoard(chessboardStr, chessboardMove, gameStatus, historyTurn) {
+    var rows = chessboardStr.split('\n');
+
+    for (var i = 0; i < rows.length; i++) {
+      var squares = rows[i].trim().split(/\s+/);
+      for (var j = 0; j < squares.length; j++) {
+        var piece = squares[j];
+
+        if (piece !== '.') {
+          replacePiece(piece, j, i)
+        }
+      }
+    }
+    if (chessboardMove) {
+      previousSquareId = chessboardMove.substring(0, 2);
+      squareId = chessboardMove.substring(2, 4);
+      previousSquare = document.getElementById(previousSquareId);
+      square = document.getElementById(squareId);
+      if (previousSquare && square) {
+        previousSquare.classList.add('moved-black-border');
+        square.classList.add('moved-black-border');
+      }
+    }
+
+    if (historyTurn) {
+      var king = ["king_white", "king_black"]
+    } else {
+      var king = ["king_black", "king_white"]
+    }
+
+    if (gameStatus == 'check') {
+      updateVariable(king)
+      kingCheck(king)
+    } if (gameStatus == 'checkmate') {
+      checkmate(king)
+    }
+    if (gameStatus == 'stalemate') {
+      stalemate(king)
+    }
+  }
+  function moveHistory(moveEntry = false) {
+
+    currentEntrySelected = document.querySelector('.move-entry.move-entry-selected');
+    if (currentEntrySelected) {
+      currentEntrySelected.classList.remove('move-entry-selected');
+    }
+    viewingMoveHistory = true
+    if (moveEntry) {
+      moveEntry.classList.add('move-entry-selected');
+      moveEntryTurn = moveEntry.dataset.turn
+      moveEntryTurn = parseInt(moveEntryTurn, 10)
+      if ((moveEntryTurn + 1) == turn) {
+        viewingMoveHistory = false
+      }
+    }
+    else {
+      moveEntryTurn = -1
+    }
+    fetch('/move_history', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ moveEntryTurn: moveEntryTurn, currentTurn: turn })
+    })
+      .then(response => {
+        if (!response.ok) {
+          console.log("error")
+        }
+        return (response.json())
+      })
+      .then(data => {
+        console.log(data)
+        chessboardStr = data.chessboard
+        chessboardMove = data.move
+        gameStatus = data.game_status
+        historyTurn = data.turn
+        clearBoard()
+        resetBoard(chessboardStr, chessboardMove, gameStatus, historyTurn)
+
+      })
+  }
   function botMove() {
     fetch('/bot_move', {
       method: 'POST',
@@ -513,18 +750,33 @@ function start() {
 
       })
   }
-  function nextTurn() {
+  function nextTurn(move) {
+    currentEntrySelected = document.querySelector('.move-entry.move-entry-selected');
+    if (currentEntrySelected) {
+      currentEntrySelected.classList.remove('move-entry-selected');
+    }
+    if (currentPlayer == 0) {
+      moveColumn = document.getElementById('move-column-white')
+    }
+    else {
+      moveColumn = document.getElementById('move-column-black')
+    }
+    moveEntry = document.createElement('div')
+    moveEntry.classList.add('move-entry')
+    moveEntry.classList.add('move-entry-selected')
+    moveEntry.dataset.turn = turn
     turn += 1
+
+    moveEntryTurn = Math.floor((turn + 1) / 2)
+    moveEntry.textContent = move
+    moveEntry.onclick = function () {
+      moveHistory(this);
+    };
+    moveColumn.appendChild(moveEntry)
     currentPlayer = turn % 2
     if (currentPlayer != chosen_player && storedMoves.length == 0) {
       premoveCompleted = false
     }
-    // if (currentPlayer == 1){
-    //   premoveWhite = false
-    // }
-    // else {
-    //   premoveWhite = true
-    // }
     pausedPlayer = 1 - turn % 2
     timer = timeList[currentPlayer]
     clearInterval(clockPause[pausedPlayer])
@@ -553,10 +805,10 @@ function start() {
     Array.from(dots).forEach(function (item) {
       item.parentNode.removeChild(item);
     });
-    var blueSquares = chessboard.querySelector(`.chess-square[style*="border: ${borderSize} solid blue;"]`)
-    if (blueSquares) {
+    var blueSquare = chessboard.getElementsByClassName('selected-blue-border')[0];
+    if (blueSquare) {
 
-      blueSquares.style.border = "none"
+      blueSquare.classList.remove('selected-blue-border');
     }
     var buttons = chessboard.querySelectorAll('button');
     if (buttons && removeButtons == 3) {
@@ -689,31 +941,34 @@ function start() {
               else {
 
                 movePiece(moveData)
-                nextTurn()
-                if (data[0] == 1 || data[0] == -1) {
-                  yValue += data[0]
+                if (viewingMoveHistory == false) {
+                  nextTurn(data.move)
+                }
+                if (data.en_passant == 1 || data.en_passant == -1) {
+                  yValue += data.en_passant
                   // updateVariable([xValue,yValue])
                   enPassant([xValue, yValue])
-                } else if (data[0] == 2 || data[0] == -4) {
-                  castling([data[0], xValue, yValue])
-                } else if (pieceList[0].includes(data[0]) || pieceList[1].includes(data[0]) || pieceList[0].includes(promote) || pieceList[1].includes(promote)) {
-                  promotion([data[0], xValue, yValue])
+                } else if (data.castling == 2 || data.castling == -4) {
+                  castling([data.castling, xValue, yValue])
+                } else if (data.promoted_piece) {
+                  promotion([data.promoted_piece, xValue, yValue])
                 }
-                if (data[data.length - 1] == 'check' || data[data.length - 1] == 'checkmate') {
-                  if (turn % 2 == 0) {
-                    var king = ["king_white", "king_black"]
-                  } else {
-                    var king = ["king_black", "king_white"]
-                  }
-                  if (data[data.length - 1] == 'check') {
+                if (data.turn) {
+                  var king = ["king_white", "king_black"]
+                } else {
+                  var king = ["king_black", "king_white"]
+                }
+                if (data.game_status == 'check' || data.game_status == 'checkmate') {
+
+                  if (data.game_status == 'check') {
                     updateVariable(king)
                     kingCheck(king)
                   } else {
                     checkmate(king)
                   }
-                } else if (data[data.length - 1] == 'stalemate') {
+                } else if (data.game_status == 'stalemate') {
                   stalemate(king)
-                } else if (data[data.length - 1] == 'repetition') {
+                } else if (data.game_status == 'repetition') {
                   repetition(king)
                   moveData = 0
                 }
@@ -750,21 +1005,22 @@ function start() {
             })
         }
 
-      } 
-       else if ( chosen_player == 0 && turn % 1 == 0 && (
-        Element.dataset.colour == 'chess.WHITE' && currentPlayer == 0 && storedMoves.length == 0 || 
-        Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1 && premoveCompleted == false || 
+      }
+      else if (chosen_player == 0 && turn % 1 == 0 && (
+        Element.dataset.colour == 'chess.WHITE' && currentPlayer == 0 && storedMoves.length == 0 ||
+        Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1 && premoveCompleted == false ||
         Element.dataset.colour == 'chess.BLACK' && currentPlayer == 1 && premoveCompleted == true)
         || chosen_player == 1 && turn % 1 == 0 && (
-          Element.dataset.colour == 'chess.BLACK' && currentPlayer == 1 && storedMoves.length == 0 || 
-          Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 && premoveCompleted == false && turn > 0 || 
+          Element.dataset.colour == 'chess.BLACK' && currentPlayer == 1 && storedMoves.length == 0 ||
+          Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 && premoveCompleted == false && turn > 0 ||
           Element.dataset.colour == 'chess.WHITE' && currentPlayer == 0 && premoveCompleted == true ||
           Element.dataset.colour == 'chess.WHITE' && turn == 0)
+        || viewingMoveHistory == true && turn % 1 == 0
       ) {
         lastClicked = Element
         console.log(currentPlayer)
         console.log(chosen_player)
-        if (chosen_player == 0 && currentPlayer == 1 && 
+        if (chosen_player == 0 && currentPlayer == 1 &&
           document.querySelector('.piece[data-coordinates="4,7"][data-piece="king_white"]')) {
           kingsideRook = document.querySelector('.piece[data-coordinates="7,7"][data-piece="rook_white"]') !== null;
           queensideRook = document.querySelector(`.piece[data-coordinates="0,7"][data-piece="rook_white"]`) !== null;
@@ -781,7 +1037,8 @@ function start() {
           piece: Element.getAttribute('data-piece'),
           color: Element.getAttribute('data-colour'),
           kingsideRook: kingsideRook,
-          queensideRook: queensideRook
+          queensideRook: queensideRook,
+          viewingMoveHistory: viewingMoveHistory
         };
         console.log(jsonData)
         coords = jsonData.coords
@@ -794,10 +1051,14 @@ function start() {
         })
           .then(response => response.json())
           .then(data => {
-            lastClicked.parentNode.style.border = `${borderSize} solid blue`
+            lastClicked.parentNode.classList.add('selected-blue-border')
             var premove = 'none'
             var colour = 'none'
-            if (chosen_player == 0 && (
+            if (viewingMoveHistory == true) {
+              premove = 'none'
+              colour = 'red'
+            }
+            else if (chosen_player == 0 && (
               Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0 || Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1) ||
               chosen_player == 1 && (
                 Element.dataset.colour == 'chess.WHITE' && currentPlayer == 1 || Element.dataset.colour == 'chess.BLACK' && currentPlayer == 0)) {
@@ -808,6 +1069,12 @@ function start() {
 
               [x, y] = item.split(',').map(coord => parseInt(coord, 10));
               var dotElement = document.createElement('span');
+              if (Element.dataset.colour == 'chess.WHITE') {
+                dotElement.classList.add('white-dots');
+              }
+              else {
+                dotElement.classList.add('black-dots');
+              }
               dotElement.classList.add('dot');
               dotElement.classList.add(premove);
               dotElement.style.backgroundColor = colour;

@@ -47,6 +47,43 @@ body{
     margin-left:calc(var(--square-size)/3);
     margin-right: calc(var(--square-size)/3);
 }
+.moves-panel{
+    display: none;
+    flex-direction: row;
+    position: relative;
+    background-color: black;
+    color: white;
+    font-size: calc(var(--square-size)/4);
+    width:calc(var(--square-size)*4);
+    height:calc(var(--square-size)*8);
+    justify-content: center;
+    align-items: center;
+    margin-left:calc(var(--square-size)/3);
+    margin-right: calc(var(--square-size)/3);
+    overflow-y: scroll;
+}
+.move-column{
+    display: flex;
+    flex-direction: column;
+    width: 50%;
+    height: 100%;
+}
+.move-entry{
+    display: flex;
+    flex-direction: row;
+    width: 100%;
+    height: calc(var(--square-size)/2);
+    justify-content: center;
+    align-items: center;
+    color: white;
+}
+.move-entry:hover{
+    background-color: #333;
+    cursor: pointer;
+}
+.move-entry-selected{
+    background-color: #555;
+}
 .letter {
     font-size: calc(var(--square-size)/5);
     color: #fff; /* Optional: Set the text color */
@@ -80,6 +117,24 @@ body{
 .letter-column{
     width: calc(var(--square-size)/4);
     height: var(--square-size); 
+}
+.moved-black-border{
+    border: 2px solid black;
+}
+.check-red-border{
+    border: 2px solid red;
+}
+.selected-blue-border{
+    border: 2px solid blue;
+}
+.winning-king{
+    background-color: green;
+}
+.losing-king{
+    background-color: red;
+}
+.drawing-king{
+    background-color: yellow;
 }
 .clock-square{
     width: calc((var(--square-size)*5)/3);

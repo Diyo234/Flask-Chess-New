@@ -7,7 +7,7 @@ function kingCheck(data){
 function checkmate(data){
     checkmateAction(data)
 }
-function stalemate(){
+function stalemate(data){
     console.log("stalemate")
     stalemateAction(data)
 }

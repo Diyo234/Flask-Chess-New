@@ -1,3 +1,5 @@
+const letters = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+const numbers = [8, 7, 6, 5, 4, 3, 2, 1];
 let resizeHeight
 if(/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)){        
     document.querySelector(".big-square").style.flexWrap = 'wrap';
@@ -207,6 +209,8 @@ function startGame(data, colour){
             x = 7-x;
             y = 7-y
             square.setAttribute('data-coordinates', `${x},${y}`);
+            currentId = square.getAttribute('id');
+            square.setAttribute('id', `${letters[x]}${numbers[y]}`);
         });
         pieces = document.querySelectorAll(".piece")
         pieces.forEach(piece => {
@@ -219,12 +223,14 @@ function startGame(data, colour){
         players = ["players",data]
     }
     loadScript(urlForBase)
-    gameSquare = document.querySelector('.game-square')
+    gameSquare = document.getElementById('game-square')
     gameSquare.parentNode.removeChild(gameSquare)
     takenRows = document.querySelectorAll('.pieces-square')
     takenRows.forEach(function(element) {
         element.style.display = "flex";
     })
+    movesPanel = document.getElementById('moves-panel')
+    movesPanel.style.display = "flex";
 }
 function reverse(id){
     const line = document.getElementById(id);
@@ -259,4 +265,3 @@ function matchmaking(){
 
 // Starts automatically
 startGame("player", "white")
-startGame("player", "black")

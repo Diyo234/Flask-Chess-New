@@ -14,8 +14,11 @@ views = Blueprint('views', __name__)
 @views.route('/', methods=['GET', 'POST'])
 def home():
     session['chessboard'] = chess.STARTING_FEN
+    session['chessboards'] = [chess.STARTING_FEN]
     session['moves'] = []
     session['premoves'] = []
+    session['history_fens'] = []
+    session['forked_moves'] = []
     session['game_over'] = False
     return render_template("home.html", user=current_user)
 
@@ -86,9 +89,10 @@ def calculated_move():
     color = data.get("color")
     kingside_rook = data.get("kingsideRook")
     queenside_rook = data.get("queensideRook")
+    viewing_move_history = data.get("viewingMoveHistory")
     if piece is None:
         return jsonify([])
-    if (chessboard.turn == chess.WHITE and color == 'chess.WHITE') or (chessboard.turn == chess.BLACK and color == 'chess.BLACK'):
+    if (chessboard.turn == chess.WHITE and color == 'chess.WHITE') or (chessboard.turn == chess.BLACK and color == 'chess.BLACK') or viewing_move_history == True:
         result = move_generator(coords)
     elif (chessboard.turn == chess.BLACK and color == 'chess.WHITE') or (chessboard.turn == chess.WHITE and color == 'chess.BLACK'):
         result = premove_generator(coords, piece, color, kingside_rook, queenside_rook)
@@ -97,8 +101,13 @@ def calculated_move():
 
 
 def move_generator(coords):
+    history_fens = session.get('history_fens', [])
+    if len(history_fens) > 0:
+        fen = history_fens[-1]
+    else:
+        fen = session['chessboard']
     chessboard = chess.Board()
-    chessboard.set_fen(session['chessboard'])
+    chessboard.set_fen(fen)
     altered_moves = []
     square = chess.parse_square(coords)
     legal_moves = chessboard.legal_moves
@@ -113,7 +122,6 @@ def premove_generator(coords, piece, color, kingside_rook, queenside_rook):
     chessboard.set_fen(session['chessboard'])
     altered_moves = []
     piece_moves = []
-    print(piece)
     if piece == 'pawn_white':
         piece_moves.append(coords + coords [0] + str(int(coords[1])+1))
         if coords[0] != 'a':
@@ -184,10 +192,15 @@ def premove_generator(coords, piece, color, kingside_rook, queenside_rook):
 @views.route('/move_piece', methods=['POST'])
 def move(move = None):
     chessboard = chess.Board()
-    chessboard.set_fen(chess.STARTING_FEN)
-    for previous_move in session['moves']:
-        chessboard.push_uci(previous_move)
-    state = []
+    history_fens = session.get('history_fens', [])
+    if len(history_fens) == 0:
+        chessboard.set_fen(chess.STARTING_FEN)
+        for previous_move in session['moves']:
+            chessboard.push_uci(previous_move)
+    else:
+        fen = history_fens[-1]
+        chessboard.set_fen(fen)
+    state = {}
     if session['game_over'] == True:
         return jsonify({'error': 'Game is over'})
     if move == None:
@@ -200,13 +213,13 @@ def move(move = None):
             move = session['premoves'].pop(0)
             if len(move) == 5:
                 if move[4] == 'n':
-                    state.append('knight_'+colour)
+                    state['promoted_piece'] = 'knight_'+colour
                 elif move[4] == 'q':
-                    state.append('queen_'+colour)
+                    state['promoted_piece'] = 'queen_'+colour
                 elif move[4] == 'r':
-                    state.append('rook_'+colour)
+                    state['promoted_piece'] = 'rook_'+colour
                 elif move[4] == 'b':
-                    state.append('bishop_'+colour)
+                    state['promoted_piece'] = 'bishop_'+colour
 
         else:
             old_coords = data.get('oldCoordinates')
@@ -222,48 +235,55 @@ def move(move = None):
                     move += 'n'
                 else:
                     move += promote[0]
-                state.append(promote)
+                state['promoted_piece'] = promote
     if chessboard.is_en_passant(chess.Move.from_uci(move)):
         if chessboard.turn == chess.BLACK:
-            state.append(-1)
+            state['en_passant'] = -1
         else:
-            state.append(1)
+            state['en_passant'] = 1
     elif chessboard.is_queenside_castling(chess.Move.from_uci(move)):
-        state.append(-4)
+        state['castling'] = -4
     elif chessboard.is_kingside_castling(chess.Move.from_uci(move)):
-        state.append(2)
+        state['castling'] = 2
     
     move_object = chess.Move.from_uci(move)
     if move_object not in chessboard.legal_moves:
-        print(chessboard)
-        print([mover for mover in session['moves']])
         print('illegal move')
         print(move)
         session['premoves'] = []
 
         return jsonify({'error': 'Illegal move'})
-    session['moves'].append(move)
     chessboard.push_uci(move)
+    if len(history_fens) == 0:
+        session['chessboards'].append(chessboard.fen())
+        print('added')
+        session['moves'].append(move)
+    else:
+        session['history_fens'].append(chessboard.fen())
+        session['forked_moves'].append(move)
+        print('history')
+    state['move'] = move
     print('legal move')
     print(move)
     session['chessboard'] = chessboard.fen()
     if chessboard.is_check():
         if chessboard.is_checkmate():
-            state.append('checkmate')
+            state['game_status'] = 'checkmate'
         else:
-            state.append('check')
+            state['game_status'] = 'check'
+            print('check')
     elif chessboard.is_stalemate():
-        state.append('stalemate')
+        state['game_status'] = 'stalemate'
     elif chessboard.is_repetition(count=3):
-        state.append('repetition')
+        state['game_status'] = 'repetition'
         session['game_over'] = True
     elif chessboard.is_fifty_moves(): 
-        state.append('fifty_moves')
+        state['game_status'] = 'fifty_moves'
         session['game_over'] = True
-    elif chessboard.is_insufficient_material():
-        state.append('insufficient_material')
+    elif chessboard.is_insufficient_material() and session['forked_moves'] == []:
+        state['game_status'] = 'insufficient_material'
         session['game_over'] = True
-    print(chessboard)
+    state['turn'] = chessboard.turn
     return jsonify(state)
 
 @views.route('/store_move', methods=['POST'])
@@ -305,6 +325,76 @@ def pop_premove():
         return jsonify({'popped_move': popped_move})
     else:
         return jsonify({'error': 'No premoves to pop'}), 400
+
+@views.route('/move_history', methods=['POST'])
+def move_history():
+    data = json.loads(request.data)
+    move_entry_turn = int(data.get('moveEntryTurn'))
+    current_turn = int(data.get('currentTurn'))
+    fen = session['chessboards'][move_entry_turn + 1]
+    if (move_entry_turn + 1) == current_turn:
+        session['history_fens'] = []
+    else: 
+        session['history_fens'] = [fen]
+    if move_entry_turn == -1:
+        move = None
+    
+    else:
+
+        move = session['moves'][move_entry_turn]
+        session['forked_moves'].append(move)
+    chessboard = chess.Board()
+    chessboard.set_fen(fen)
+    session['chessboard'] = fen
+    game_status = None
+    if chessboard.is_check():
+        if chessboard.is_checkmate():
+            game_status = 'checkmate'
+        else:
+            game_status = 'check'
+    if chessboard.is_stalemate():
+        game_status = 'stalemate'
+    return jsonify({'move': move, 'chessboard': str(chessboard), 'game_status': game_status, 'turn': chessboard.turn})
+
+@views.route('/view_next_move', methods=['POST'])
+def view_next_move():
+    data = json.loads(request.data)
+    move_entry_turn = int(data.get('moveEntryTurn'))
+    session['history_fens'] = []
+    move = session['moves'][move_entry_turn]
+    session['forked_moves'].append(move)
+    fen = session['chessboards'][move_entry_turn + 1]
+    chessboard = chess.Board()
+    chessboard.set_fen(fen)
+    session['chessboard'] = fen
+    game_status = None
+    if chessboard.is_check():
+        if chessboard.is_checkmate():
+            game_status = 'checkmate'
+        else:
+            game_status = 'check'
+    if chessboard.is_stalemate():
+        game_status = 'stalemate'
+    return jsonify({'move': move, 'chessboard': str(chessboard), 'game_status': game_status, 'turn': chessboard.turn})
+
+@views.route('/undo_forked_move', methods=['POST'])
+def undo_forked_move():
+    if len(session['history_fens']) > 0:
+        session['history_fens'].pop()
+    if len(session['history_fens']) == 0:
+        return jsonify({'move': None, 'chessboard': None, 'forked': False})
+    
+    fen = session['history_fens'][-1] if session['history_fens'] else chess.STARTING_FEN
+    session['forked_moves'].pop()
+    move = session['forked_moves'][-1] if session['forked_moves'] else None
+    chessboard = chess.Board()
+    chessboard.set_fen(fen)
+    session['chessboard'] = fen
+    game_status = None
+    if chessboard.is_check():
+        game_status = 'check'
+    return jsonify({'move': move, 'chessboard': str(chessboard), 'forked': True, 'game_status': game_status, 'turn': chessboard.turn})
+
 
 @socketio.on('move')
 def move_piece(data):
